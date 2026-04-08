@@ -7,7 +7,7 @@ export default function LoadingScreen() {
   useEffect(() => {
     const isOnboarded = localStorage.getItem('hb_onboarded') === 'true'
     const timer = setTimeout(() => {
-      navigate(isOnboarded ? '/dashboard' : '/', { replace: true })
+      navigate(isOnboarded ? '/dashboard' : '/welcome', { replace: true })
     }, 2200)
     return () => clearTimeout(timer)
   }, [navigate])
