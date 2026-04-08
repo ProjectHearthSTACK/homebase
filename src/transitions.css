@@ -1,0 +1,96 @@
+/* ── Screen transitions ── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeSlideLeft {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeSlideRight {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Card animations ── */
+@keyframes cardEnterRight {
+  from { opacity: 0; transform: translateX(40px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes cardEnterLeft {
+  from { opacity: 0; transform: translateX(-40px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes cardExitLeft {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(-40px) scale(0.97); }
+}
+@keyframes progressFill {
+  from { width: 0%; }
+  to   { width: var(--progress-to); }
+}
+
+/* ── Micro-interactions ── */
+@keyframes popIn {
+  0%   { transform: scale(0.85); opacity: 0; }
+  70%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.04); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes checkPop {
+  0%   { transform: scale(0) rotate(-10deg); opacity: 0; }
+  60%  { transform: scale(1.2) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes streakBounce {
+  0%, 100% { transform: translateY(0); }
+  40%       { transform: translateY(-6px); }
+  60%       { transform: translateY(-3px); }
+}
+
+/* ── Screen utility classes ── */
+.screen-enter       { animation: fadeSlideUp   0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.screen-enter-left  { animation: fadeSlideLeft  0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.screen-enter-right { animation: fadeSlideRight 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.screen-fade        { animation: fadeIn         0.25s ease both; }
+
+/* ── Card utility classes ── */
+.card-enter-right { animation: cardEnterRight 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.card-enter-left  { animation: cardEnterLeft  0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ── Staggered children ── */
+.stagger > * { animation: fadeSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger > *:nth-child(4) { animation-delay: 0.20s; }
+.stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger > *:nth-child(6) { animation-delay: 0.30s; }
+
+/* ── Misc ── */
+.pop-in     { animation: popIn    0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.pulse      { animation: pulse    1.8s ease-in-out infinite; }
+.streak     { animation: streakBounce 0.6s ease both; }
+.shimmer-bg {
+  background: linear-gradient(90deg, var(--cream-dark) 25%, var(--cream) 50%, var(--cream-dark) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
