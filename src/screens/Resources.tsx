@@ -104,7 +104,7 @@ export default function Resources() {
       </div>
 
       {/* State Selector */}
-      <div style={{ margin: '16px 24px 0', position: 'relative' }}>
+      <div style={{ margin: '16px 24px 0' }}>
         <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--slate-muted)', marginBottom: 8 }}>
           📍 Find local resources
         </p>
@@ -113,7 +113,8 @@ export default function Resources() {
           style={{
             width: '100%', padding: '12px 16px',
             background: 'var(--white)', border: '1.5px solid var(--cream-dark)',
-            borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            borderRadius: dropdownOpen ? '12px 12px 0 0' : 'var(--radius-md)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             fontSize: '0.9rem', color: selectedState ? 'var(--slate)' : 'var(--slate-muted)',
             fontWeight: selectedState ? 600 : 400,
           }}
@@ -124,11 +125,11 @@ export default function Resources() {
 
         {dropdownOpen && (
           <div style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-            background: 'var(--white)', border: '1.5px solid var(--cream-dark)',
-            borderRadius: 'var(--radius-md)', marginTop: 4,
+            background: 'var(--white)',
+            border: '1.5px solid var(--cream-dark)',
+            borderTop: 'none',
+            borderRadius: '0 0 12px 12px',
             maxHeight: 220, overflowY: 'auto',
-            boxShadow: 'var(--shadow-md)',
           }}>
             {US_STATES.map(state => (
               <button
