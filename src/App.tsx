@@ -33,7 +33,7 @@ function Layout() {
         <Route path="/dashboard"             element={<Dashboard />} />
         <Route path="/modules"               element={<Modules />} />
         <Route path="/resources"             element={<Resources />} />
-        <Route path="/lesson/:moduleId"      element={<ModuleLesson />} />
+        <Route path="/lesson/:moduleId/:lessonNumber" element={<ModuleLesson />} />
         <Route path="/profile"               element={<Profile />} />
         <Route path="/settings/profile"      element={<EditProfile />} />
         <Route path="/settings/notifications" element={<NotificationSettings />} />
