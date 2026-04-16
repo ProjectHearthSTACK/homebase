@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { usePageTransition } from '../hooks/usePageTransition'
+import { useState } from 'react'
 
 const situationLabels: Record<string, string> = {
   'first-job': 'Starting my first job',
@@ -16,15 +17,55 @@ const goalLabels: Record<string, string> = {
   'save':     'Start an emergency fund',
 }
 
+const situationEncouragement: Record<string, string> = {
+  'first-job': "Starting your first job is a huge deal. You're building the foundation everything else stands on. Keep going — you've got this.",
+  'paycheck':  "Living paycheck to paycheck is stressful, but it's also temporary. Every lesson you complete is one step closer to breathing room.",
+  'debt':      "Debt feels heavy, but people climb out of it every single day. You're already doing the right thing by showing up and learning.",
+  'saving':    "Deciding to start saving is one of the most powerful moves you can make. Future you is going to be genuinely grateful.",
+  'lost':      "Feeling lost is actually the most honest place to start. You're here, you're learning — and that already puts you ahead of where you were.",
+}
+
+const goalEncouragement: Record<string, string> = {
+  'paycheck': "Understanding your paycheck is step one to everything. Once you know where your money goes, you can actually decide where it goes next.",
+  'budget':   "A budget isn't a restriction — it's a plan. You're building one of the most important habits you'll ever have.",
+  'debt':     "Getting out of debt takes time, but every dollar you put toward it is a dollar buying back your freedom.",
+  'save':     "An emergency fund is the difference between a bad week and a financial crisis. You're building your safety net.",
+}
+
+function getStreakMessage(streak: number): string {
+  if (streak >= 30) return "30 days. One month. You've done something most people only talk about."
+  if (streak >= 14) return "Two weeks strong. You're not dabbling anymore — you're committed."
+  if (streak >= 7)  return "One full week. You've proven you can show up. Now keep showing up."
+  if (streak >= 5)  return "Five days. This is becoming a habit. Habits change everything."
+  if (streak >= 3)  return "Three-day streak! You're building something real. Don't stop now."
+  if (streak >= 2)  return "Two days in. Most people never make it this far. You did."
+  return "Day one. The hardest streak to start is the first one. You started."
+}
+
+// Mock data — replace with real data later
+const completedLessons = [
+  { id: 'l1', module: 'Your First Paycheck Decoded', title: 'What Happened to My Money?' },
+]
+
+const earnedSkills = [
+  { id: 's1', emoji: '📖', label: 'Paycheck Reader' },
+]
+
+type PopupType = 'streak' | 'lessons' | 'skills' | 'situation' | 'goal' | null
+
 export default function Profile() {
   const navigate = useNavigate()
   const ref = usePageTransition('fade')
+  const [popup, setPopup] = useState<PopupType>(null)
 
   const name        = localStorage.getItem('hb_name') || 'You'
   const situation   = localStorage.getItem('hb_situation') || null
   const goal        = localStorage.getItem('hb_goal') || null
   const avatarColor = localStorage.getItem('hb_avatar_color') || 'var(--terracotta)'
+  const photo       = localStorage.getItem('hb_photo') || null
+  const isPro       = localStorage.getItem('hb_pro') === 'true'
   const initial     = name[0].toUpperCase()
+  const streak      = 3 // Replace with real streak data
 
   const handleSignOut = () => {
     localStorage.clear()
@@ -32,60 +73,146 @@ export default function Profile() {
   }
 
   const settings = [
-    { label: 'Edit profile',           emoji: '✏️',  path: '/settings/profile' },
-    { label: 'Notification settings',  emoji: '🔔',  path: '/settings/notifications' },
-    { label: 'About HomeBase',         emoji: 'ℹ️',  path: '/settings/about' },
+    { label: 'Edit profile',          emoji: '✏️', path: '/settings/profile' },
+    { label: 'Notification settings', emoji: '🔔', path: '/settings/notifications' },
+    { label: 'About HomeBase',        emoji: 'ℹ️', path: '/settings/about' },
   ]
 
+  const Popup = ({ children }: { children: React.ReactNode }) => (
+    <>
+      <div
+        onClick={() => setPopup(null)}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, animation: 'fadeIn 0.2s ease' }}
+      />
+      <div style={{
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: '100%', maxWidth: 430,
+        background: 'var(--white)', borderRadius: '20px 20px 0 0',
+        padding: '28px 24px 48px', zIndex: 201,
+        animation: 'slideUp 0.25s ease',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
+      }}>
+        <div style={{ width: 36, height: 4, background: 'var(--cream-dark)', borderRadius: 4, margin: '0 auto 24px' }} />
+        {children}
+      </div>
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes slideUp { from { transform: translateX(-50%) translateY(40px); opacity: 0 } to { transform: translateX(-50%) translateY(0); opacity: 1 } }
+      `}</style>
+    </>
+  )
+
   return (
-    <div ref={ref} style={{ minHeight: '100vh', background: 'var(--cream)', paddingBottom: 90 }}>
+    <div ref={ref} style={{ minHeight: '100vh', background: 'var(--cream)', paddingBottom: 100 }}>
+
       {/* Header */}
       <div style={{ background: 'var(--slate)', padding: '48px 24px 32px', color: 'var(--cream)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, flexShrink: 0, transition: 'background 0.3s' }}>
-            {initial}
-          </div>
+
+          {/* Avatar — tappable, navigates to edit profile */}
+          <button
+            onClick={() => navigate('/settings/profile')}
+            style={{
+              width: 68, height: 68, borderRadius: '50%',
+              background: photo ? 'transparent' : avatarColor,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.6rem', color: 'white',
+              fontFamily: 'var(--font-display)', fontWeight: 600,
+              flexShrink: 0, transition: 'opacity 0.15s',
+              border: '3px solid rgba(255,255,255,0.2)',
+              overflow: 'hidden', position: 'relative',
+            }}
+            onMouseDown={e => (e.currentTarget.style.opacity = '0.8')}
+            onMouseUp={e => (e.currentTarget.style.opacity = '1')}
+          >
+            {photo
+              ? <img src={photo} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : initial
+            }
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              background: 'rgba(0,0,0,0.35)', fontSize: '0.5rem',
+              color: 'white', textAlign: 'center', padding: '3px 0', letterSpacing: '0.03em',
+            }}>EDIT</div>
+          </button>
+
           <div>
-            <h1 style={{ fontSize: '1.6rem', marginBottom: 4 }}>{name}</h1>
-            <p style={{ fontSize: '0.85rem', color: '#a0a0b0' }}>HomeBase member</p>
+            <h1 style={{ fontSize: '1.5rem', marginBottom: 6 }}>{name}</h1>
+            <span style={{
+              fontSize: '0.72rem', fontWeight: 600,
+              color: isPro ? '#FFD700' : '#a0a0b0',
+              background: isPro ? 'rgba(255,215,0,0.15)' : 'rgba(255,255,255,0.07)',
+              padding: '3px 10px', borderRadius: 20,
+              border: isPro ? '1px solid rgba(255,215,0,0.3)' : '1px solid rgba(255,255,255,0.1)',
+            }}>
+              {isPro ? '⚡ HomeBase Unlimited Member' : 'HomeBase Member'}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats — all tappable */}
       <div style={{ display: 'flex', gap: 10, padding: '20px 24px 0' }}>
         {[
-          { label: 'Streak',  value: '3 days' },
-          { label: 'Lessons', value: '1 done' },
-          { label: 'Skills',  value: '1 earned' },
+          { label: 'Streak',  value: `${streak} days`,                    type: 'streak'  as PopupType },
+          { label: 'Lessons', value: `${completedLessons.length} Done`,   type: 'lessons' as PopupType },
+          { label: 'Skills',  value: `${earnedSkills.length} Earned`,     type: 'skills'  as PopupType },
         ].map(s => (
-          <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 'var(--radius-md)', padding: '14px 10px', textAlign: 'center', border: '1.5px solid var(--cream-dark)' }}>
+          <button
+            key={s.label}
+            onClick={() => setPopup(s.type)}
+            style={{
+              flex: 1, background: 'var(--white)', borderRadius: 'var(--radius-md)',
+              padding: '14px 10px', textAlign: 'center',
+              border: '1.5px solid var(--cream-dark)', cursor: 'pointer',
+              transition: 'transform 0.15s',
+            }}
+            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.96)')}
+            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+          >
             <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: 'var(--slate)', marginBottom: 2 }}>{s.value}</p>
             <p style={{ fontSize: '0.68rem', color: 'var(--slate-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</p>
-          </div>
+          </button>
         ))}
       </div>
 
       <div style={{ padding: '20px 24px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Situation + goal */}
+
+        {/* Situation + Goal — tappable */}
         {(situation || goal) && (
           <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--cream-dark)', overflow: 'hidden' }}>
             {situation && (
-              <div style={{ padding: '14px 18px', borderBottom: goal ? '1px solid var(--cream-dark)' : 'none' }}>
-                <p style={{ fontSize: '0.68rem', color: 'var(--slate-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Situation</p>
-                <p style={{ fontSize: '0.92rem', fontWeight: 500, color: 'var(--slate)' }}>{situationLabels[situation] ?? situation}</p>
-              </div>
+              <button
+                onClick={() => setPopup('situation')}
+                style={{ width: '100%', padding: '14px 18px', borderBottom: goal ? '1px solid var(--cream-dark)' : 'none', textAlign: 'left', background: 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <div>
+                  <p style={{ fontSize: '0.68rem', color: 'var(--slate-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Situation</p>
+                  <p style={{ fontSize: '0.92rem', fontWeight: 500, color: 'var(--slate)' }}>{situationLabels[situation] ?? situation}</p>
+                </div>
+                <span style={{ color: 'var(--slate-muted)', fontSize: '0.85rem' }}>→</span>
+              </button>
             )}
             {goal && (
-              <div style={{ padding: '14px 18px' }}>
-                <p style={{ fontSize: '0.68rem', color: 'var(--slate-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>#1 Goal</p>
-                <p style={{ fontSize: '0.92rem', fontWeight: 500, color: 'var(--slate)' }}>{goalLabels[goal] ?? goal}</p>
-              </div>
+              <button
+                onClick={() => setPopup('goal')}
+                style={{ width: '100%', padding: '14px 18px', textAlign: 'left', background: 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <div>
+                  <p style={{ fontSize: '0.68rem', color: 'var(--slate-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>#1 Goal</p>
+                  <p style={{ fontSize: '0.92rem', fontWeight: 500, color: 'var(--slate)' }}>{goalLabels[goal] ?? goal}</p>
+                </div>
+                <span style={{ color: 'var(--slate-muted)', fontSize: '0.85rem' }}>→</span>
+              </button>
             )}
           </div>
         )}
 
-        {/* Settings buttons */}
+        {/* Settings */}
         <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--cream-dark)', overflow: 'hidden' }}>
           {settings.map((item, i) => (
             <button
@@ -94,8 +221,6 @@ export default function Profile() {
               style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '15px 18px', background: 'transparent', fontSize: '0.92rem', color: 'var(--slate)', borderBottom: i < settings.length - 1 ? '1px solid var(--cream-dark)' : 'none', textAlign: 'left', transition: 'background 0.15s' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.99)')}
-              onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
               <span style={{ fontSize: '1rem' }}>{item.emoji}</span>
               <span style={{ flex: 1 }}>{item.label}</span>
@@ -104,6 +229,19 @@ export default function Profile() {
           ))}
         </div>
 
+        {/* Upgrade banner if not pro */}
+        {!isPro && (
+          <div style={{ background: 'var(--slate)', borderRadius: 'var(--radius-md)', padding: '16px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'white', marginBottom: 2 }}>⚡ Go Unlimited</p>
+              <p style={{ fontSize: '0.75rem', color: '#a0a0b0' }}>Unlock every module for $7.99/mo</p>
+            </div>
+            <button style={{ background: 'var(--terracotta)', color: 'white', fontSize: '0.78rem', fontWeight: 700, padding: '8px 14px', borderRadius: 20 }}>
+              Upgrade
+            </button>
+          </div>
+        )}
+
         <button
           onClick={handleSignOut}
           style={{ background: 'transparent', color: '#c0392b', fontSize: '0.9rem', padding: '14px', textAlign: 'center', width: '100%', textDecoration: 'underline', textUnderlineOffset: 3 }}
@@ -111,6 +249,92 @@ export default function Profile() {
           Sign out
         </button>
       </div>
+
+      {/* ── POPUPS ── */}
+
+      {popup === 'streak' && (
+        <Popup>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem', marginBottom: 12 }}>🔥</div>
+            <h2 style={{ fontSize: '1.6rem', fontFamily: 'var(--font-display)', color: 'var(--slate)', marginBottom: 8 }}>{streak}-Day Streak</h2>
+            <p style={{ fontSize: '0.95rem', color: 'var(--slate-muted)', lineHeight: 1.7, maxWidth: 300, margin: '0 auto 24px' }}>
+              {getStreakMessage(streak)}
+            </p>
+            <button onClick={() => setPopup(null)} style={{ background: 'var(--terracotta)', color: 'white', fontWeight: 700, padding: '13px 32px', borderRadius: 'var(--radius-md)', fontSize: '0.95rem' }}>
+              Keep Going 🔥
+            </button>
+          </div>
+        </Popup>
+      )}
+
+      {popup === 'lessons' && (
+        <Popup>
+          <h2 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-display)', color: 'var(--slate)', marginBottom: 16 }}>Lessons Completed</h2>
+          {completedLessons.length === 0 ? (
+            <p style={{ fontSize: '0.9rem', color: 'var(--slate-muted)', textAlign: 'center', padding: '20px 0' }}>No lessons completed yet. Go learn something!</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {completedLessons.map(l => (
+                <div key={l.id} style={{ background: 'var(--cream)', borderRadius: 12, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: '1.1rem' }}>✅</span>
+                  <div>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--slate)' }}>{l.title}</p>
+                    <p style={{ fontSize: '0.73rem', color: 'var(--slate-muted)' }}>{l.module}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Popup>
+      )}
+
+      {popup === 'skills' && (
+        <Popup>
+          <h2 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-display)', color: 'var(--slate)', marginBottom: 16 }}>Earned Skills</h2>
+          {earnedSkills.length === 0 ? (
+            <p style={{ fontSize: '0.9rem', color: 'var(--slate-muted)', textAlign: 'center', padding: '20px 0' }}>No skills earned yet. Complete a module to earn your first.</p>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+              {earnedSkills.map(s => (
+                <div key={s.id} style={{ background: '#FFF0EC', border: '1.5px solid var(--terracotta)', borderRadius: 12, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '1.2rem' }}>{s.emoji}</span>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--terracotta)' }}>{s.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Popup>
+      )}
+
+      {popup === 'situation' && situation && (
+        <Popup>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--slate-muted)', marginBottom: 8 }}>Your Situation</p>
+            <h2 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-display)', color: 'var(--slate)', marginBottom: 16 }}>{situationLabels[situation] ?? situation}</h2>
+            <p style={{ fontSize: '0.95rem', color: 'var(--slate-muted)', lineHeight: 1.8, maxWidth: 320, margin: '0 auto 24px' }}>
+              {situationEncouragement[situation] ?? "You're in the right place. Keep going."}
+            </p>
+            <button onClick={() => navigate('/settings/profile')} style={{ background: 'transparent', color: 'var(--terracotta)', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+              Update my situation
+            </button>
+          </div>
+        </Popup>
+      )}
+
+      {popup === 'goal' && goal && (
+        <Popup>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--slate-muted)', marginBottom: 8 }}>Your #1 Goal</p>
+            <h2 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-display)', color: 'var(--slate)', marginBottom: 16 }}>{goalLabels[goal] ?? goal}</h2>
+            <p style={{ fontSize: '0.95rem', color: 'var(--slate-muted)', lineHeight: 1.8, maxWidth: 320, margin: '0 auto 24px' }}>
+              {goalEncouragement[goal] ?? "Every step you take gets you closer. Keep going."}
+            </p>
+            <button onClick={() => navigate('/settings/profile')} style={{ background: 'transparent', color: 'var(--terracotta)', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+              Update my goal
+            </button>
+          </div>
+        </Popup>
+      )}
     </div>
   )
 }
