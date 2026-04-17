@@ -41,10 +41,9 @@ export default function EditProfile() {
   // Load profile from Supabase on mount
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { navigate('/welcome'); return }
-      setUserId(user.id)
-      setEmail(user.email || '')
+      const { data: { session } } = await supabase.auth.getSession()
+if (!session) { navigate('/welcome'); return }
+setUserId(session.user.id)
 
       const { data } = await supabase
         .from('profiles')
