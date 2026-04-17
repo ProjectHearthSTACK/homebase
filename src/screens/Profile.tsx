@@ -69,14 +69,14 @@ export default function Profile() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { navigate('/welcome'); return }
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) { navigate('/welcome'); return }
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', session.user.id)
+    .single()
 
       if (error) console.error('Error fetching profile:', error)
       else setProfile(data)
