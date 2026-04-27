@@ -32,7 +32,10 @@ function Layout() {
         <Route path="/onboarding/goal"                     element={<OnboardingGoal />} />
         <Route path="/dashboard"                           element={<Dashboard />} />
         <Route path="/modules"                             element={<Modules />} />
-        <Route path="/community"                           element={<div style={{ padding: 40, textAlign: 'center', color: 'var(--slate-muted)', fontFamily: 'var(--font-body)' }}>Community coming soon</div>} />
+        import Community from './screens/Community'
+        // ...
+         <Route path="/community" element={<Community />} />
+
         <Route path="/resources"                           element={<Resources />} />
         <Route path="/lesson/:moduleId/:lessonNumber"      element={<ModuleLesson />} />
         <Route path="/profile"                             element={<Profile />} />
