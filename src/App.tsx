@@ -16,7 +16,7 @@ import AboutHomeBase from './screens/settings/AboutHomeBase'
 import BottomNav from './components/BottomNav'
 import './App.css'
 
-const NAV_ROUTES = ['/dashboard', '/modules', '/resources', '/profile']
+const NAV_ROUTES = ['/dashboard', '/modules', '/community', '/resources', '/profile']
 
 function Layout() {
   const { pathname } = useLocation()
@@ -24,21 +24,22 @@ function Layout() {
   return (
     <>
       <Routes>
-        <Route path="/onboarding/auth" element={<OnboardingAuth />} />
-        <Route path="/"                      element={<LoadingScreen />} />
-        <Route path="/welcome"               element={<Welcome />} />
-        <Route path="/onboarding/name"       element={<OnboardingName />} />
-        <Route path="/onboarding/situation"  element={<OnboardingSituation />} />
-        <Route path="/onboarding/goal"       element={<OnboardingGoal />} />
-        <Route path="/dashboard"             element={<Dashboard />} />
-        <Route path="/modules"               element={<Modules />} />
-        <Route path="/resources"             element={<Resources />} />
-        <Route path="/lesson/:moduleId/:lessonNumber" element={<ModuleLesson />} />
-        <Route path="/profile"               element={<Profile />} />
-        <Route path="/settings/profile"      element={<EditProfile />} />
-        <Route path="/settings/notifications" element={<NotificationSettings />} />
-        <Route path="/settings/about"        element={<AboutHomeBase />} />
-        <Route path="*"                      element={<Navigate to="/" />} />
+        <Route path="/"                                    element={<LoadingScreen />} />
+        <Route path="/onboarding/auth"                     element={<OnboardingAuth />} />
+        <Route path="/welcome"                             element={<Welcome />} />
+        <Route path="/onboarding/name"                     element={<OnboardingName />} />
+        <Route path="/onboarding/situation"                element={<OnboardingSituation />} />
+        <Route path="/onboarding/goal"                     element={<OnboardingGoal />} />
+        <Route path="/dashboard"                           element={<Dashboard />} />
+        <Route path="/modules"                             element={<Modules />} />
+        <Route path="/community"                           element={<div style={{ padding: 40, textAlign: 'center', color: 'var(--slate-muted)', fontFamily: 'var(--font-body)' }}>Community coming soon</div>} />
+        <Route path="/resources"                           element={<Resources />} />
+        <Route path="/lesson/:moduleId/:lessonNumber"      element={<ModuleLesson />} />
+        <Route path="/profile"                             element={<Profile />} />
+        <Route path="/settings/profile"                    element={<EditProfile />} />
+        <Route path="/settings/notifications"              element={<NotificationSettings />} />
+        <Route path="/settings/about"                      element={<AboutHomeBase />} />
+        <Route path="*"                                    element={<Navigate to="/" />} />
       </Routes>
       {showNav && <BottomNav />}
     </>
