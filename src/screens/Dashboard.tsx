@@ -1,3 +1,4 @@
+import { pillars } from '../content'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import { usePageTransition } from '../hooks/usePageTransition'
