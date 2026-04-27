@@ -1,277 +1,233 @@
-import { pillars } from '../content'
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { pillars } from '../content'
 
-// Pillars instead of categories
-const pillars = ['All', 'Money Basics', 'Taxes & Benefits', 'Building Wealth']
-
-const modules = [
-  {
-    id: '1', emoji: '💵', title: 'Your First Paycheck Decoded',
-    desc: 'Understand gross vs. net, taxes, and every line on your stub.',
-    duration: '8 min', unlocked: true, pillar: 'Money Basics',
-  },
-  {
-    id: '2', emoji: '🧾', title: 'Taxes Without the Panic',
-    desc: 'W-2s, 1099s, refunds, and what April 15 actually means.',
-    duration: '10 min', unlocked: false, pillar: 'Taxes & Benefits',
-  },
-  {
-    id: '3', emoji: '📊', title: 'Building Your First Budget',
-    desc: 'The 50/30/20 rule and a system that actually sticks.',
-    duration: '9 min', unlocked: false, pillar: 'Money Basics',
-  },
-  {
-    id: '4', emoji: '🏦', title: 'Emergency Funds 101',
-    desc: 'Why $1,000 changes everything and how to get there.',
-    duration: '7 min', unlocked: false, pillar: 'Money Basics',
-  },
-  {
-    id: '5', emoji: '📉', title: 'Getting Out of Debt',
-    desc: 'Avalanche vs. snowball — and which one wins for you.',
-    duration: '11 min', unlocked: false, pillar: 'Money Basics',
-  },
-  {
-    id: '6', emoji: '📈', title: 'Credit Scores Explained',
-    desc: 'What moves your score and how to build it from zero.',
-    duration: '8 min', unlocked: false, pillar: 'Building Wealth',
-  },
-  {
-    id: '7', emoji: '🏥', title: 'Health Insurance Basics',
-    desc: 'Premiums, deductibles, copays — decoded once and for all.',
-    duration: '9 min', unlocked: false, pillar: 'Taxes & Benefits',
-  },
-  {
-    id: '8', emoji: '🏠', title: 'Renting vs. Buying',
-    desc: 'The real math behind one of the biggest decisions you will make.',
-    duration: '12 min', unlocked: false, pillar: 'Building Wealth',
-  },
-  {
-    id: '9', emoji: '📦', title: 'Investing for Beginners',
-    desc: '401k, IRA, index funds — where to start and why it matters now.',
-    duration: '10 min', unlocked: false, pillar: 'Building Wealth',
-  },
-]
-
-// Badge data per module — tied to pillar
-// Each badge: { id, emoji, label, type: 'lesson' | 'module' | 'pillar' | 'misc', earned }
-const moduleBadges: Record<string, { id: string; emoji: string; label: string; type: string; earned: boolean }[]> = {
-  '1': [
-    { id: 'b1', emoji: '📖', label: 'First Lesson', type: 'lesson', earned: true },
-    { id: 'b2', emoji: '💡', label: 'Pay Stub Pro', type: 'lesson', earned: true },
-    { id: 'b3', emoji: '💵', label: 'Paycheck Decoded', type: 'module', earned: false },
-    { id: 'b4', emoji: '🌱', label: 'Money Basics Starter', type: 'pillar', earned: false },
-    { id: 'b5', emoji: '🔥', label: '3-Day Streak', type: 'misc', earned: true },
-    { id: 'b6', emoji: '⚡', label: 'Fast Learner', type: 'misc', earned: false },
-  ],
-  '2': [
-    { id: 'b1', emoji: '🧾', label: 'Tax Curious', type: 'lesson', earned: false },
-    { id: 'b2', emoji: '📋', label: 'W-2 Warrior', type: 'lesson', earned: false },
-    { id: 'b3', emoji: '🧠', label: 'Tax Decoded', type: 'module', earned: false },
-    { id: 'b4', emoji: '🏛️', label: 'Benefits Explorer', type: 'pillar', earned: false },
-  ],
+const PILLAR_COLORS: Record<string, string> = {
+  '1': '#C1694F',
+  '2': '#4A7C6F',
+  '3': '#6B5EA8',
+  '4': '#C1694F',
 }
 
-type ModuleDetailProps = {
-  module: typeof modules[0]
-  onClose: () => void
-  onStart: () => void
-}
-
-function ModuleDetail({ module, onClose, onStart }: ModuleDetailProps) {
-  const [enrolled, setEnrolled] = useState(false)
-  const badges = moduleBadges[module.id] || []
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'var(--cream)', zIndex: 200,
-      overflowY: 'auto', paddingBottom: 100,
-      animation: 'slideUp 0.25s ease',
-    }}>
-      <style>{`@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
-
-      {/* Header */}
-      <div style={{ background: 'var(--slate)', padding: '48px 24px 28px', color: 'var(--cream)', position: 'relative' }}>
-        <button
-          onClick={onClose}
-          style={{ position: 'absolute', top: 20, left: 20, background: 'rgba(255,255,255,0.1)', borderRadius: '50%', width: 34, height: 34, color: 'white', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >←</button>
-
-        <div style={{ marginTop: 16, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-          <div style={{ width: 60, height: 60, borderRadius: 14, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', flexShrink: 0 }}>
-            {module.emoji}
-          </div>
-          <div>
-            <p style={{ fontSize: '0.72rem', color: 'var(--terracotta-light)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>{module.pillar}</p>
-            <h1 style={{ fontSize: '1.35rem', lineHeight: 1.3 }}>{module.title}</h1>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ padding: '20px 24px 0' }}>
-
-        {/* Progress + Time */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-          <div style={{ flex: 1, background: 'var(--white)', borderRadius: 'var(--radius-md)', padding: '14px 16px', border: '1.5px solid var(--cream-dark)' }}>
-            <p style={{ fontSize: '0.7rem', color: 'var(--slate-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Progress</p>
-            <p style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--slate)' }}>0%</p>
-            <div style={{ marginTop: 8, height: 4, background: 'var(--cream-dark)', borderRadius: 10 }}>
-              <div style={{ width: '0%', height: '100%', background: 'var(--terracotta)', borderRadius: 10 }} />
-            </div>
-          </div>
-          <div style={{ flex: 1, background: 'var(--white)', borderRadius: 'var(--radius-md)', padding: '14px 16px', border: '1.5px solid var(--cream-dark)' }}>
-            <p style={{ fontSize: '0.7rem', color: 'var(--slate-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Time Spent</p>
-            <p style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--slate)' }}>0 min</p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--slate-muted)', marginTop: 4 }}>of {module.duration}</p>
-          </div>
-        </div>
-
-        {/* Description */}
-        <p style={{ fontSize: '0.88rem', color: 'var(--slate-muted)', lineHeight: 1.7, marginBottom: 20 }}>{module.desc}</p>
-
-        {/* Enroll / Unenroll */}
-        <button
-          onClick={() => setEnrolled(e => !e)}
-          style={{
-            width: '100%', padding: '14px', borderRadius: 'var(--radius-md)',
-            background: enrolled ? 'transparent' : 'var(--terracotta)',
-            color: enrolled ? 'var(--slate-muted)' : 'white',
-            border: enrolled ? '1.5px solid var(--cream-dark)' : 'none',
-            fontWeight: 600, fontSize: '0.95rem',
-            marginBottom: 28, transition: 'all 0.2s',
-          }}
-        >
-          {enrolled ? 'Unenroll from Module' : 'Enroll in Module'}
-        </button>
-
-        {/* Lessons */}
-        <h2 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--slate-muted)', marginBottom: 12 }}>Lessons</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
-          {['Introduction', 'Core Concepts', 'Deep Dive', 'Real-World Apply', 'Quiz & Review'].map((lesson, i) => (
-            <div key={i} style={{ background: 'var(--white)', borderRadius: 12, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, border: '1.5px solid var(--cream-dark)' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? 'var(--terracotta)' : 'var(--cream-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: i === 0 ? 'white' : 'var(--slate-muted)', flexShrink: 0 }}>
-                {i + 1}
-              </div>
-              <p style={{ fontSize: '0.87rem', fontWeight: 500, color: 'var(--slate)' }}>{lesson}</p>
-              {i === 0 && <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 600, color: 'var(--terracotta)', background: '#FFF0EC', padding: '2px 8px', borderRadius: 20 }}>Start</span>}
-            </div>
-          ))}
-        </div>
-
-        {/* Badges */}
-        <h2 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--slate-muted)', marginBottom: 12 }}>Badges</h2>
-        <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
-          {badges.map(badge => (
-            <div
-              key={badge.id}
-              style={{
-                flexShrink: 0, width: 80,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                opacity: badge.earned ? 1 : 0.35,
-                filter: badge.earned ? 'none' : 'grayscale(1)',
-              }}
-            >
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%',
-                background: badge.earned ? '#FFF0EC' : '#f0f0f0',
-                border: badge.earned ? '2px solid var(--terracotta)' : '2px solid #ddd',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.5rem',
-              }}>
-                {badge.emoji}
-              </div>
-              <p style={{ fontSize: '0.65rem', fontWeight: 600, color: badge.earned ? 'var(--slate)' : 'var(--slate-muted)', textAlign: 'center', lineHeight: 1.3 }}>
-                {badge.label}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+const PILLAR_BG: Record<string, string> = {
+  '1': '#FFF0EC',
+  '2': '#EDF5F3',
+  '3': '#F0EDF8',
+  '4': '#FFF0EC',
 }
 
 export default function Modules() {
   const navigate = useNavigate()
-  const [filter, setFilter] = useState('All')
-  const [selectedModule, setSelectedModule] = useState<typeof modules[0] | null>(null)
+  const [activePillar, setActivePillar] = useState('1')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const filtered = filter === 'All' ? modules : modules.filter(m => m.pillar === filter)
-
-  if (selectedModule) {
-    return (
-      <ModuleDetail
-        module={selectedModule}
-        onClose={() => setSelectedModule(null)}
-        onStart={() => navigate('/lesson/' + selectedModule.id)}
-      />
-    )
-  }
+  const pillar = pillars.find(p => p.id === activePillar)!
+  const accentColor = PILLAR_COLORS[activePillar]
+  const accentBg    = PILLAR_BG[activePillar]
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--cream)', paddingBottom: 100 }}>
-      {/* Header */}
-      <div style={{ background: 'var(--slate)', padding: '48px 24px 24px', color: 'var(--cream)' }}>
-        <h1 style={{ fontSize: '1.8rem', marginBottom: 4 }}>Learn</h1>
-        <p style={{ fontSize: '0.88rem', color: '#a0a0b0' }}>9 modules · start anywhere</p>
+    <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--cream)', paddingBottom: 100 }}>
+
+      {/* HEADER */}
+      <div style={{ background: 'var(--slate)', padding: '52px 24px 0' }}>
+        <p style={{ fontSize: '0.72rem', color: 'var(--terracotta-light)', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>
+          HOMEBASE
+        </p>
+        <h1 style={{ fontSize: '1.7rem', color: 'var(--cream)', fontFamily: 'var(--font-display)', marginBottom: 20 }}>
+          Learn
+        </h1>
+
+        {/* PILLAR TABS */}
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 0 }}>
+          {pillars.map(p => {
+            const isActive = p.id === activePillar
+            return (
+              <button
+                key={p.id}
+                onClick={() => { setActivePillar(p.id); setExpandedId(null) }}
+                style={{
+                  flexShrink: 0,
+                  padding: '8px 14px',
+                  borderRadius: '20px 20px 0 0',
+                  background: isActive ? 'var(--cream)' : 'rgba(255,255,255,0.08)',
+                  color: isActive ? PILLAR_COLORS[p.id] : 'rgba(255,255,255,0.55)',
+                  fontSize: '0.78rem',
+                  fontWeight: isActive ? 700 : 500,
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {p.emoji} {p.title}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      {/* Pillar Filter */}
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '16px 24px', scrollbarWidth: 'none' }}>
-        {pillars.map(p => (
-          <button
-            key={p}
-            onClick={() => setFilter(p)}
-            style={{
-              padding: '7px 14px', borderRadius: 20,
-              border: filter === p ? '1.5px solid var(--terracotta)' : '1.5px solid var(--cream-dark)',
-              background: filter === p ? 'var(--terracotta)' : 'var(--white)',
-              color: filter === p ? 'var(--white)' : 'var(--slate-muted)',
-              fontSize: '0.8rem', fontWeight: 500,
-              whiteSpace: 'nowrap', flexShrink: 0,
-              transition: 'all 0.15s',
-            }}
-          >{p}</button>
-        ))}
+      {/* PILLAR SUMMARY */}
+      <div style={{ background: accentBg, padding: '16px 24px', borderBottom: `2px solid ${accentColor}22` }}>
+        <p style={{ fontSize: '0.8rem', color: accentColor, lineHeight: 1.6 }}>
+          {pillar.description}
+        </p>
+        <p style={{ fontSize: '0.72rem', color: 'var(--slate-muted)', marginTop: 6, fontWeight: 600 }}>
+          {pillar.modules.length} modules · {pillar.modules.reduce((a, m) => a + m.lessons.length, 0)} pages
+        </p>
       </div>
 
-      {/* Module List */}
-      <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {filtered.map((m, i) => (
-          <div
-            key={m.id}
-            onClick={() => setSelectedModule(m)}
-            style={{
-              background: 'var(--white)', borderRadius: 'var(--radius-md)', padding: '16px',
-              display: 'flex', gap: 14,
-              border: '1.5px solid var(--cream-dark)', boxShadow: 'var(--shadow-sm)',
-              opacity: m.unlocked ? 1 : 0.6,
-              cursor: 'pointer',
-              position: 'relative',
-            }}
-          >
-            <div style={{ position: 'absolute', top: 10, right: 14, fontSize: '0.7rem', color: 'var(--slate-muted)', fontWeight: 600 }}>
-              {String(i + 1).padStart(2, '0')}
-            </div>
-            <div style={{ width: 52, height: 52, borderRadius: 12, flexShrink: 0, background: m.unlocked ? '#FFF0EC' : '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
-              {m.emoji}
-            </div>
-            <div style={{ flex: 1, paddingRight: 20 }}>
-              <div style={{ marginBottom: 4 }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--terracotta)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.pillar}</span>
+      {/* MODULE LIST */}
+      <div style={{ padding: '16px 16px 0' }}>
+        {pillar.modules.map((mod, idx) => {
+          const isExpanded = expandedId === mod.id
+          const completedCount = mod.lessons.filter(l => l.completed).length
+          const pct = Math.round((completedCount / mod.lessons.length) * 100)
+
+          return (
+            <div
+              key={mod.id}
+              style={{
+                marginBottom: 10,
+                borderRadius: 'var(--radius-md)',
+                overflow: 'hidden',
+                border: '1.5px solid var(--cream-dark)',
+                boxShadow: 'var(--shadow-sm)',
+                background: 'var(--white)',
+              }}
+            >
+              {/* MODULE ROW */}
+              <div
+                onClick={() => setExpandedId(isExpanded ? null : mod.id)}
+                style={{
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                {/* Emoji + number badge */}
+                <div style={{
+                  width: 46, height: 46, borderRadius: 12,
+                  background: accentBg,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.35rem', flexShrink: 0,
+                  position: 'relative',
+                }}>
+                  {mod.emoji}
+                  <span style={{
+                    position: 'absolute', bottom: -4, right: -4,
+                    fontSize: '0.55rem', fontWeight: 700,
+                    background: accentColor, color: 'white',
+                    borderRadius: 8, padding: '1px 5px',
+                    lineHeight: 1.6,
+                  }}>{idx + 1}</span>
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{
+                    fontWeight: 600, fontSize: '0.88rem',
+                    color: 'var(--slate)', lineHeight: 1.35,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>
+                    {mod.title}
+                  </p>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--slate-muted)', marginTop: 2 }}>
+                    {mod.lessons.length} pages
+                    {completedCount > 0 && ` · ${completedCount} done`}
+                  </p>
+                  {completedCount > 0 && (
+                    <div style={{ marginTop: 6, height: 3, background: '#eee', borderRadius: 2 }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: accentColor, borderRadius: 2, transition: 'width 0.4s ease' }} />
+                    </div>
+                  )}
+                </div>
+
+                <span style={{
+                  color: accentColor, fontSize: '1.1rem',
+                  transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s',
+                  display: 'inline-block', flexShrink: 0,
+                }}>›</span>
               </div>
-              <p style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--slate)', marginBottom: 4, lineHeight: 1.3 }}>{m.title}</p>
-              <p style={{ fontSize: '0.78rem', color: 'var(--slate-muted)', lineHeight: 1.5, marginBottom: 6 }}>{m.desc}</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--slate-muted)' }}>{m.duration}</span>
-                {m.unlocked
-                  ? <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--terracotta)', background: '#FFF0EC', padding: '2px 8px', borderRadius: 20 }}>Start</span>
-                  : <span style={{ fontSize: '0.72rem', color: 'var(--slate-muted)' }}>Locked</span>
-                }
-              </div>
+
+              {/* LESSON LIST */}
+              {isExpanded && (
+                <div style={{ background: '#fdfaf8', borderTop: '1px solid var(--cream-dark)' }}>
+                  <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--cream-dark)' }}>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--slate-muted)', fontStyle: 'italic', lineHeight: 1.5 }}>
+                      {mod.description}
+                    </p>
+                  </div>
+                  {mod.lessons.map((lesson, lIdx) => (
+                    <div
+                      key={lesson.id}
+                      onClick={() => navigate(`/lesson/${mod.id}/${lIdx + 1}`)}
+                      style={{
+                        padding: '11px 16px 11px 20px',
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        borderBottom: lIdx < mod.lessons.length - 1 ? '1px solid var(--cream-dark)' : 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0 }}>
+                        {lesson.completed
+                          ? <>
+                              <circle cx="9" cy="9" r="8.5" fill={accentColor} stroke={accentColor}/>
+                              <path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </>
+                          : <circle cx="9" cy="9" r="8.5" stroke="#D4C5B8" fill="none"/>
+                        }
+                      </svg>
+
+                      <p style={{
+                        flex: 1,
+                        fontSize: '0.83rem',
+                        color: lesson.completed ? 'var(--slate-muted)' : 'var(--slate)',
+                        fontWeight: lesson.completed ? 400 : 500,
+                        textDecoration: lesson.completed ? 'line-through' : 'none',
+                        lineHeight: 1.4,
+                      }}>
+                        {lesson.title}
+                      </p>
+
+                      <span style={{ fontSize: '0.7rem', color: '#aaa', flexShrink: 0 }}>
+                        {lIdx + 1}/{mod.lessons.length}
+                      </span>
+
+                      <span style={{ color: accentColor, fontSize: '0.85rem', flexShrink: 0 }}>›</span>
+                    </div>
+                  ))}
+
+                  {/* Start / Continue button */}
+                  <div style={{ padding: '12px 16px' }}>
+                    <button
+                      onClick={() => {
+                        const firstIncomplete = mod.lessons.findIndex(l => !l.completed)
+                        const target = firstIncomplete === -1 ? 0 : firstIncomplete
+                        navigate(`/lesson/${mod.id}/${target + 1}`)
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '11px',
+                        background: accentColor,
+                        color: 'white',
+                        borderRadius: 'var(--radius-md)',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      {completedCount === 0
+                        ? 'Start Module →'
+                        : completedCount === mod.lessons.length
+                          ? 'Review Module →'
+                          : `Continue — Page ${mod.lessons.findIndex(l => !l.completed) + 1} →`
+                      }
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
