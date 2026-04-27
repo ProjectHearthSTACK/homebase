@@ -14,6 +14,15 @@ const LearnIcon = ({ active }: { active: boolean }) => (
   </svg>
 )
 
+const CommunityIcon = ({ active }: { active: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#C1694F' : '#6B7080'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+    <path d="M16 3.13a4 4 0 010 7.75"/>
+  </svg>
+)
+
 const ResourcesIcon = ({ active }: { active: boolean }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#C1694F' : '#6B7080'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10"/>
@@ -30,10 +39,11 @@ const ProfileIcon = ({ active }: { active: boolean }) => (
 )
 
 const tabs = [
-  { path: '/dashboard', label: 'Home',      Icon: HomeIcon },
-  { path: '/modules',   label: 'Learn',     Icon: LearnIcon },
+  { path: '/dashboard', label: 'Home',      Icon: HomeIcon      },
+  { path: '/modules',   label: 'Learn',     Icon: LearnIcon     },
+  { path: '/community', label: 'Community', Icon: CommunityIcon },
   { path: '/resources', label: 'Resources', Icon: ResourcesIcon },
-  { path: '/profile',   label: 'Profile',   Icon: ProfileIcon },
+  { path: '/profile',   label: 'Profile',   Icon: ProfileIcon   },
 ]
 
 export default function BottomNav() {
@@ -65,7 +75,7 @@ export default function BottomNav() {
         >
           <Icon active={isActive(path)} />
           <span style={{
-            fontSize: '0.62rem',
+            fontSize: '0.6rem',
             fontWeight: isActive(path) ? 600 : 400,
             color: isActive(path) ? 'var(--terracotta)' : 'var(--slate-muted)',
             letterSpacing: '0.02em',
