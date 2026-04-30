@@ -2,42 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { usePageTransition } from '../hooks/usePageTransition'
 import { getLesson, getModule } from '../content'
-
-interface Card {
-  id: string
-  type: 'hook' | 'learn' | 'apply' | 'win'
-  title: string
-  body: string
-}
-
-function buildPlaceholderCards(lessonTitle: string, moduleTitle: string): Card[] {
-  return [
-    {
-      id: 'hook',
-      type: 'hook',
-      title: lessonTitle,
-      body: `This lesson is part of "${moduleTitle}." Tap through to see what\'s covered — full content coming soon.`,
-    },
-    {
-      id: 'learn',
-      type: 'learn',
-      title: 'What You\'ll Learn',
-      body: `"${lessonTitle}" walks you through one focused concept so you can understand it, apply it, and move on with confidence. No jargon. No fluff.`,
-    },
-    {
-      id: 'apply',
-      type: 'apply',
-      title: 'Put It Into Practice',
-      body: 'The best way to learn this is to apply it to your own situation. Think about where this concept shows up in your life right now.',
-    },
-    {
-      id: 'win',
-      type: 'win',
-      title: 'Page Complete',
-      body: 'You finished this page. Every one you complete adds up — keep going.',
-    },
-  ]
-}
+import { lessonCards, LessonCard } from '../lessonContent'
 
 const typeBg: Record<string, string> = {
   hook:  '#2D3142',
@@ -53,19 +18,47 @@ const typeLabel: Record<string, string> = {
   win:   'Complete',
 }
 
+function buildPlaceholderCards(lessonTitle: string, moduleTitle: string): LessonCard[] {
+  return [
+    {
+      id: 'hook',
+      type: 'hook',
+      title: lessonTitle,
+      body: `This page is part of "${moduleTitle}." Full content coming soon.`,
+    },
+    {
+      id: 'learn',
+      type: 'learn',
+      title: 'What You\'ll Learn',
+      body: `"${lessonTitle}" walks you through one focused concept so you can understand it, apply it, and move on with confidence. No jargon. No fluff.`,
+    },
+    {
+      id: 'apply',
+      type: 'apply',
+      title: 'Put It Into Practice',
+      body: 'Think about where this concept shows up in your life right now.',
+    },
+    {
+      id: 'win',
+      type: 'win',
+      title: 'Page Complete',
+      body: 'You finished this page. Every one you complete adds up — keep going.',
+    },
+  ]
+}
+
 export default function ModuleLesson() {
-  const navigate = useNavigate()
-  const ref = usePageTransition('left')
+  const navigate  = useNavigate()
+  const ref       = usePageTransition('left')
   const { moduleId, lessonNumber } = useParams()
 
-  const [cards,    setCards]    = useState<Card[]>([])
+  const [cards,    setCards]    = useState<LessonCard[]>([])
   const [index,    setIndex]    = useState(0)
   const [animKey,  setAnimKey]  = useState(0)
   const [dir,      setDir]      = useState<'right' | 'left'>('right')
   const [finished, setFinished] = useState(false)
 
-  // Derived info from content.ts
-  const lessonNum = Number(lessonNumber) || 1
+  const lessonNum  = Number(lessonNumber) || 1
   const lessonData = moduleId ? getLesson(moduleId, lessonNum) : undefined
   const moduleData = moduleId ? getModule(moduleId) : undefined
 
@@ -75,14 +68,19 @@ export default function ModuleLesson() {
   const totalLessons = moduleData?.lessons.length || 1
 
   useEffect(() => {
-    // In the future: fetch real cards from Supabase here
-    // For now: use placeholder cards built from content.ts titles
-    if (lessonTitle) {
-      setCards(buildPlaceholderCards(lessonTitle, moduleTitle))
-    }
+    if (!moduleId) return
+
+    // Build the lesson ID and look up real content
+    // moduleId format from content.ts is e.g. '1-1', '1-2'
+    // lesson ID format in lessonContent.ts is e.g. 'p1-m1-l1'
+    const [pillarId, moduleNum] = moduleId.split('-')
+    const lessonId = `p${pillarId}-m${moduleNum}-l${lessonNum}`
+    const realCards = lessonCards[lessonId]
+
+    setCards(realCards ?? buildPlaceholderCards(lessonTitle, moduleTitle))
     setIndex(0)
     setFinished(false)
-  }, [moduleId, lessonNumber])
+  }, [moduleId, lessonNumber, lessonTitle, moduleTitle])
 
   const card   = cards[index]
   const isLast = index === cards.length - 1
@@ -95,7 +93,6 @@ export default function ModuleLesson() {
 
   const handleFinish = () => {
     setFinished(true)
-    // Navigate to next lesson or back to modules if last
     const nextLesson = lessonNum + 1
     if (nextLesson <= totalLessons) {
       setTimeout(() => navigate(`/lesson/${moduleId}/${nextLesson}`), 400)
@@ -105,9 +102,17 @@ export default function ModuleLesson() {
   }
 
   if (!card) return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'var(--cream)', padding: '0 28px', textAlign: 'center' }}>
-      <p style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--slate)' }}>Lesson not found.</p>
-      <button className="btn-primary" onClick={() => navigate('/modules')}>Back to Modules</button>
+    <div style={{
+      minHeight: '100vh', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 12,
+      background: 'var(--cream)', padding: '0 28px', textAlign: 'center',
+    }}>
+      <p style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--slate)' }}>
+        Page not found.
+      </p>
+      <button className="btn-primary" onClick={() => navigate('/modules')}>
+        Back to Modules
+      </button>
     </div>
   )
 
@@ -147,89 +152,72 @@ export default function ModuleLesson() {
               key={i}
               style={{
                 flex: 1, height: 3, borderRadius: 2,
-                background: isDark ? 'rgba(255,255,255,0.15)' : 'var(--cream-dark)',
-                overflow: 'hidden',
+                background: isDark
+                  ? i <= index ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.2)'
+                  : i <= index ? 'var(--terracotta)' : 'var(--cream-dark)',
+                transition: 'background 0.3s ease',
               }}
-            >
-              <div style={{
-                height: '100%',
-                width: i <= index ? '100%' : '0%',
-                background: 'var(--terracotta)',
-                borderRadius: 2,
-                transition: i <= index ? 'width 0.4s ease' : 'none',
-                transitionDelay: i === index ? '0.1s' : '0s',
-              }} />
-            </div>
+            />
           ))}
         </div>
 
-        <p style={{
-          fontSize: '0.72rem', color: isDark ? 'rgba(255,255,255,0.4)' : 'var(--slate-muted)',
-          fontWeight: 600, flexShrink: 0,
+        {/* Card counter */}
+        <span style={{
+          fontSize: '0.75rem', fontWeight: 600,
+          color: isDark ? 'rgba(255,255,255,0.5)' : 'var(--slate-muted)',
+          flexShrink: 0,
         }}>
-          {lessonNum}/{totalLessons}
-        </p>
+          {index + 1}/{cards.length}
+        </span>
       </div>
+
+      {/* Breadcrumb */}
+      {pillarTitle && (
+        <p style={{
+          fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.08em',
+          textTransform: 'uppercase', marginBottom: 6,
+          color: isDark ? 'rgba(255,255,255,0.4)' : 'var(--slate-muted)',
+        }}>
+          {pillarTitle} · {moduleTitle}
+        </p>
+      )}
+
+      {/* Page label */}
+      <p style={{
+        fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em',
+        textTransform: 'uppercase', marginBottom: 20,
+        color: isDark
+          ? 'rgba(255,255,255,0.55)'
+          : card.type === 'apply' ? 'var(--terracotta)'
+          : card.type === 'win'   ? '#2E7D52'
+          : 'var(--slate-muted)',
+      }}>
+        {typeLabel[card.type]}
+      </p>
 
       {/* Card content */}
       <div
         key={animKey}
         style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          animation: `${dir === 'right' ? 'slideInRight' : 'slideInLeft'} 0.25s ease both`,
+          flex: 1,
+          animation: `${dir === 'right' ? 'slideInRight' : 'slideInLeft'} 0.22s ease`,
         }}
       >
-        {card.type === 'win' ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 16 }}>
-            <div style={{ fontSize: '3.5rem', lineHeight: 1, animation: 'popIn 0.4s cubic-bezier(0.22,1,0.36,1) both' }}>🎉</div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.9rem', lineHeight: 1.2, color: 'var(--slate)' }}>
-              {card.title}
-            </h1>
-            <div style={{
-              background: '#E8F8EE', border: '1.5px solid #a8e6c0',
-              borderRadius: 'var(--radius-md)', padding: '10px 18px',
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-            }}>
-              <span style={{ fontSize: '1rem' }}>🏅</span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1a6b4a' }}>
-                {lessonTitle} — done
-              </span>
-            </div>
-            <p style={{ fontSize: '0.95rem', lineHeight: 1.75, color: 'var(--slate-muted)', maxWidth: 300 }}>
-              {card.body}
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Breadcrumb */}
-            <div style={{ marginBottom: 20 }}>
-              <p style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--terracotta)', marginBottom: 4 }}>
-                {typeLabel[card.type]}
-              </p>
-              {isDark && pillarTitle && (
-                <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em' }}>
-                  {pillarTitle} · {moduleTitle}
-                </p>
-              )}
-            </div>
+        <h2 style={{
+          fontSize: '1.55rem', fontWeight: 700, lineHeight: 1.25,
+          marginBottom: 20, color: textColor,
+        }}>
+          {card.title}
+        </h2>
 
-            <h1 style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '1.85rem', lineHeight: 1.2,
-              marginBottom: 20, color: textColor,
-            }}>
-              {card.title}
-            </h1>
-
-            <p style={{
-              fontSize: '1.05rem', lineHeight: 1.8,
-              color: isDark ? '#c0b8b0' : 'var(--slate-muted)',
-              flex: 1,
-            }}>
-              {card.body}
-            </p>
-          </>
-        )}
+        <p style={{
+          fontSize: '1rem', lineHeight: 1.7,
+          color: isDark ? 'rgba(255,255,255,0.78)' : 'var(--slate-muted)',
+          flex: 1,
+          whiteSpace: 'pre-line',
+        }}>
+          {card.body}
+        </p>
       </div>
 
       {/* Navigation */}
@@ -270,10 +258,6 @@ export default function ModuleLesson() {
         @keyframes slideInLeft {
           from { transform: translateX(-24px); opacity: 0; }
           to   { transform: translateX(0);     opacity: 1; }
-        }
-        @keyframes popIn {
-          from { transform: scale(0.5); opacity: 0; }
-          to   { transform: scale(1);   opacity: 1; }
         }
       `}</style>
     </div>
