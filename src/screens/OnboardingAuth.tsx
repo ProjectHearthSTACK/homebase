@@ -5,14 +5,31 @@ import { supabase } from '../lib/supabase'
 
 type Mode = 'signup' | 'login'
 
+const AUTH_ERRORS: Record<string, string> = {
+  'Invalid login credentials':          'Incorrect email or password. Try again.',
+  'Email not confirmed':                 'Please confirm your email before logging in.',
+  'User already registered':             'An account with this email already exists. Try logging in.',
+  'Password should be at least 6 characters': 'Password must be at least 6 characters.',
+  'Unable to validate email address':    'Please enter a valid email address.',
+  'signup_disabled':                     'Sign ups are currently disabled. Try again later.',
+}
+
+function friendlyError(raw: string): string {
+  for (const [key, msg] of Object.entries(AUTH_ERRORS)) {
+    if (raw.toLowerCase().includes(key.toLowerCase())) return msg
+  }
+  return 'Something went wrong. Please try again.'
+}
+
 export default function OnboardingAuth() {
   const navigate = useNavigate()
   const ref = usePageTransition('left')
-  const [mode, setMode] = useState<Mode>('signup')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [mode, setMode]           = useState<Mode>('signup')
+  const [email, setEmail]         = useState('')
+  const [password, setPassword]   = useState('')
+  const [showPass, setShowPass]   = useState(false)
+  const [error, setError]         = useState('')
+  const [loading, setLoading]     = useState(false)
 
   const handleContinue = async () => {
     if (!email.trim() || !password.trim()) return
@@ -21,9 +38,8 @@ export default function OnboardingAuth() {
 
     if (mode === 'signup') {
       const { data, error } = await supabase.auth.signUp({ email, password })
-      if (error) { setError(error.message); setLoading(false); return }
+      if (error) { setError(friendlyError(error.message)); setLoading(false); return }
 
-      // Insert profile row immediately on sign up
       if (data.user) {
         await supabase.from('profiles').upsert({
           id: data.user.id,
@@ -37,9 +53,8 @@ export default function OnboardingAuth() {
       navigate('/onboarding/name')
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) { setError(error.message); setLoading(false); return }
+      if (error) { setError(friendlyError(error.message)); setLoading(false); return }
 
-      // Pull profile from Supabase and sync to localStorage
       if (data.user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -75,7 +90,7 @@ export default function OnboardingAuth() {
     e.target.style.boxShadow = '0 0 0 3px rgba(193,105,79,0.12)'
   }
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = 'var(--cream-dark)'
+    e.target.style.borderColor = error ? '#c0392b' : 'var(--cream-dark)'
     e.target.style.boxShadow = 'none'
   }
 
@@ -89,6 +104,7 @@ export default function OnboardingAuth() {
           <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600 }}>HomeBase</span>
         </div>
 
+        {/* Mode toggle */}
         <div style={{ display: 'flex', background: 'var(--cream-dark)', borderRadius: 'var(--radius-md)', padding: 4, marginBottom: 32 }}>
           {(['signup', 'login'] as Mode[]).map(m => (
             <button
@@ -117,30 +133,66 @@ export default function OnboardingAuth() {
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Email */}
           <input
             type="email"
             placeholder="Email address"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={e => { setEmail(e.target.value); setError('') }}
             autoFocus
-            style={inputStyle}
+            style={{
+              ...inputStyle,
+              borderColor: error ? '#c0392b' : 'var(--cream-dark)',
+            }}
             onFocus={handleFocus}
             onBlur={handleBlur}
           />
-          <input
-            type="password"
-            placeholder={isLogin ? 'Your password' : 'Create a password'}
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleContinue()}
-            style={inputStyle}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-          />
+
+          {/* Password + toggle */}
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showPass ? 'text' : 'password'}
+              placeholder={isLogin ? 'Your password' : 'Create a password'}
+              value={password}
+              onChange={e => { setPassword(e.target.value); setError('') }}
+              onKeyDown={e => e.key === 'Enter' && handleContinue()}
+              style={{
+                ...inputStyle,
+                paddingRight: 52,
+                borderColor: error ? '#c0392b' : 'var(--cream-dark)',
+              }}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPass(v => !v)}
+              style={{
+                position: 'absolute', right: 16, top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none', border: 'none',
+                color: 'var(--slate-muted)', cursor: 'pointer',
+                fontSize: '0.85rem', fontWeight: 600,
+                fontFamily: 'var(--font-body)',
+                padding: '4px',
+              }}
+            >
+              {showPass ? 'Hide' : 'Show'}
+            </button>
+          </div>
         </div>
 
+        {/* Error state */}
         {error && (
-          <p style={{ color: 'var(--terracotta)', fontSize: '0.85rem', marginTop: 12 }}>{error}</p>
+          <div style={{
+            marginTop: 14, padding: '12px 14px',
+            background: '#fdf0ef', borderRadius: 'var(--radius-md)',
+            border: '1.5px solid #f0b8b0',
+            display: 'flex', alignItems: 'flex-start', gap: 8,
+          }}>
+            <span style={{ fontSize: '0.9rem', flexShrink: 0 }}>⚠️</span>
+            <p style={{ color: '#c0392b', fontSize: '0.85rem', lineHeight: 1.5 }}>{error}</p>
+          </div>
         )}
 
         {!isLogin && (
