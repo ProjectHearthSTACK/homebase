@@ -21,9 +21,16 @@ export default function Modules() {
   const [activePillar, setActivePillar] = useState('1')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const pillar = pillars.find(p => p.id === activePillar)!
+  const pillar      = pillars.find(p => p.id === activePillar)!
   const accentColor = PILLAR_COLORS[activePillar]
   const accentBg    = PILLAR_BG[activePillar]
+
+  const enroll = (moduleId: string) => {
+    const enrolled: string[] = JSON.parse(localStorage.getItem('hb_enrolled_modules') || '[]')
+    if (!enrolled.includes(moduleId)) {
+      localStorage.setItem('hb_enrolled_modules', JSON.stringify([...enrolled, moduleId]))
+    }
+  }
 
   return (
     <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--cream)', paddingBottom: 100 }}>
@@ -32,9 +39,7 @@ export default function Modules() {
       <div style={{
         background: 'var(--slate)',
         padding: '52px 24px 0',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
+        position: 'sticky', top: 0, zIndex: 10,
       }}>
         <p style={{ fontSize: '0.72rem', color: 'var(--terracotta-light)', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>
           HOMEBASE
@@ -85,9 +90,9 @@ export default function Modules() {
       {/* MODULE LIST */}
       <div style={{ padding: '16px 16px 0' }}>
         {pillar.modules.map((mod, idx) => {
-          const isExpanded = expandedId === mod.id
+          const isExpanded     = expandedId === mod.id
           const completedCount = mod.lessons.filter(l => l.completed).length
-          const pct = Math.round((completedCount / mod.lessons.length) * 100)
+          const pct            = Math.round((completedCount / mod.lessons.length) * 100)
 
           return (
             <div
@@ -168,27 +173,30 @@ export default function Modules() {
                       {mod.description}
                     </p>
                   </div>
+
                   {mod.lessons.map((lesson, lIdx) => (
                     <div
                       key={lesson.id}
-                      onClick={() => navigate(`/lesson/${mod.id}/${lIdx + 1}`)}
+                      onClick={() => {
+                        enroll(mod.id)
+                        navigate(`/lesson/${mod.id}/${lIdx + 1}`)
+                      }}
                       onMouseDown={e => (e.currentTarget.style.background = 'var(--cream)')}
                       onMouseUp={e => (e.currentTarget.style.background = 'transparent')}
                       style={{
                         padding: '11px 16px 11px 20px',
                         display: 'flex', alignItems: 'center', gap: 10,
                         borderBottom: lIdx < mod.lessons.length - 1 ? '1px solid var(--cream-dark)' : 'none',
-                        cursor: 'pointer',
-                        transition: 'background 0.15s',
+                        cursor: 'pointer', transition: 'background 0.15s',
                       }}
                     >
                       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0 }}>
                         {lesson.completed
                           ? <>
-                              <circle cx="9" cy="9" r="8.5" fill={accentColor} stroke={accentColor}/>
-                              <path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                              <circle cx="9" cy="9" r="8.5" fill={accentColor} stroke={accentColor} />
+                              <path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                             </>
-                          : <circle cx="9" cy="9" r="8.5" stroke="#D4C5B8" fill="none"/>
+                          : <circle cx="9" cy="9" r="8.5" stroke="#D4C5B8" fill="none" />
                         }
                       </svg>
 
@@ -215,6 +223,7 @@ export default function Modules() {
                   <div style={{ padding: '12px 16px' }}>
                     <button
                       onClick={() => {
+                        enroll(mod.id)
                         const firstIncomplete = mod.lessons.findIndex(l => !l.completed)
                         const target = firstIncomplete === -1 ? 0 : firstIncomplete
                         navigate(`/lesson/${mod.id}/${target + 1}`)
