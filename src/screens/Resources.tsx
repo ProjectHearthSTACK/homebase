@@ -15,25 +15,25 @@ const nationwideResources = [
   {
     category: 'Tools',
     items: [
-      { emoji: '🧮', title: 'Paycheck Calculator',   desc: 'See exactly where your money goes before it hits your account.', tag: 'Interactive' },
-      { emoji: '📋', title: 'Budget Builder',         desc: 'Plug in your income and expenses — get a real plan.',            tag: 'Interactive' },
-      { emoji: '📅', title: 'Debt Payoff Tracker',   desc: 'See your payoff date with avalanche or snowball method.',        tag: 'Interactive' },
+      { emoji: '🧮', title: 'Paycheck Calculator',  desc: 'See exactly where your money goes before it hits your account.', tag: 'Interactive' },
+      { emoji: '📋', title: 'Budget Builder',        desc: 'Plug in your income and expenses — get a real plan.',            tag: 'Interactive' },
+      { emoji: '📅', title: 'Debt Payoff Tracker',  desc: 'See your payoff date with avalanche or snowball method.',        tag: 'Interactive' },
     ],
   },
   {
     category: 'Guides',
     items: [
-      { emoji: '📄', title: 'How to Read a Pay Stub',       desc: 'A line-by-line breakdown you can actually use.',              tag: 'PDF'       },
-      { emoji: '🗂️', title: 'Documents You Should Keep',    desc: 'The 10 financial documents every adult needs to have.',       tag: 'Checklist' },
-      { emoji: '💬', title: 'Glossary of Money Terms',      desc: '40+ terms explained in plain language.',                     tag: 'Reference' },
+      { emoji: '📄', title: 'How to Read a Pay Stub',    desc: 'A line-by-line breakdown you can actually use.',        tag: 'PDF'       },
+      { emoji: '🗂️', title: 'Documents You Should Keep', desc: 'The 10 financial documents every adult needs to have.', tag: 'Checklist' },
+      { emoji: '💬', title: 'Glossary of Money Terms',   desc: '40+ terms explained in plain language.',                tag: 'Reference' },
     ],
   },
   {
     category: 'Get Help',
     items: [
-      { emoji: '🏛️', title: 'Free Financial Counseling', desc: 'NFCC-certified counselors — free or low cost.',            tag: 'External' },
-      { emoji: '🍎', title: 'Benefits.gov',              desc: 'Find government benefits you may qualify for.',             tag: 'External' },
-      { emoji: '🆘', title: '211 Helpline',              desc: 'Local food, housing, and financial assistance.',            tag: 'External' },
+      { emoji: '🏛️', title: 'Free Financial Counseling', desc: 'NFCC-certified counselors — free or low cost.',   tag: 'External' },
+      { emoji: '🍎', title: 'Benefits.gov',              desc: 'Find government benefits you may qualify for.',   tag: 'External' },
+      { emoji: '🆘', title: '211 Helpline',              desc: 'Local food, housing, and financial assistance.',  tag: 'External' },
     ],
   },
 ]
@@ -62,12 +62,16 @@ const tagColors: Record<string, { bg: string; color: string }> = {
 function ResourceCard({ item }: { item: { emoji: string; title: string; desc: string; tag: string } }) {
   const tc = tagColors[item.tag] ?? { bg: '#f0f0f0', color: '#666' }
   return (
-    <div style={{
-      background: 'var(--white)', borderRadius: 'var(--radius-md)',
-      padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start',
-      border: '1.5px solid var(--cream-dark)', cursor: 'pointer',
-      boxShadow: 'var(--shadow-sm)',
-    }}>
+    <div
+      onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.98)')}
+      onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+      style={{
+        background: 'var(--white)', borderRadius: 'var(--radius-md)',
+        padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start',
+        border: '1.5px solid var(--cream-dark)', cursor: 'pointer',
+        boxShadow: 'var(--shadow-sm)', transition: 'transform 0.15s',
+      }}
+    >
       <div style={{
         width: 44, height: 44, borderRadius: 10, background: tc.bg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -93,14 +97,18 @@ export default function Resources() {
   const [selectedState, setSelectedState] = useState('')
   const [dropdownOpen,  setDropdownOpen]  = useState(false)
 
-  const stateSpecific    = selectedState ? (stateResources[selectedState] || []) : []
+  const stateSpecific     = selectedState ? (stateResources[selectedState] || []) : []
   const hasStateResources = stateSpecific.length > 0
 
   return (
     <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--cream)', paddingBottom: 100 }}>
 
-      {/* HEADER — matches Modules/Dashboard pattern */}
-      <div style={{ background: 'var(--slate)', padding: '52px 24px 24px' }}>
+      {/* HEADER — sticky */}
+      <div style={{
+        background: 'var(--slate)',
+        padding: '52px 24px 24px',
+        position: 'sticky', top: 0, zIndex: 10,
+      }}>
         <p style={{ fontSize: '0.72rem', color: 'var(--terracotta-light)', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>
           HOMEBASE
         </p>
@@ -130,6 +138,8 @@ export default function Resources() {
         </p>
         <button
           onClick={() => setDropdownOpen(o => !o)}
+          onMouseDown={e => (e.currentTarget.style.opacity = '0.85')}
+          onMouseUp={e => (e.currentTarget.style.opacity = '1')}
           style={{
             width: '100%', padding: '12px 16px',
             background: 'var(--white)', border: '1.5px solid var(--cream-dark)',
@@ -138,6 +148,7 @@ export default function Resources() {
             fontSize: '0.9rem',
             color: selectedState ? 'var(--slate)' : 'var(--slate-muted)',
             fontWeight: selectedState ? 600 : 400,
+            transition: 'opacity 0.15s',
           }}
         >
           {selectedState || 'Select your state'}
