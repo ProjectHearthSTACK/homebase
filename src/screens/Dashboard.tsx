@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import PageTransition from '../components/PageTransition'
 
-// ─── Progress helpers (localStorage until Supabase table confirmed) ────────────
+// ─── Progress helpers ──────────────────────────────────────────────────────────
 const PROGRESS_KEY = 'hb_completed_lessons'
 
 function getCompleted(): Set<string> {
@@ -14,11 +14,11 @@ function getCompleted(): Set<string> {
   } catch { return new Set() }
 }
 
-// ─── Data from content.ts ─────────────────────────────────────────────────────
-const pillar1    = pillars.find(p => p.id === '1')!
+// ─── Data from content.ts ──────────────────────────────────────────────────────
+const pillar1     = pillars.find(p => p.id === '1')!
 const dashModules = pillar1.modules.slice(0, 4)
 
-// ─── Static highlights (will connect to XP/badges later) ─────────────────────
+// ─── Static highlights ─────────────────────────────────────────────────────────
 const highlights = [
   { id: 'b1', emoji: '📖', label: 'First Lesson',    earned: true  },
   { id: 'b2', emoji: '💡', label: 'Pay Stub Pro',     earned: true  },
@@ -28,7 +28,7 @@ const highlights = [
   { id: 'm2', emoji: '⚡', label: 'Fast Learner',     earned: false },
 ]
 
-// ─── Lesson dot — green check or neutral circle ───────────────────────────────
+// ─── Lesson dot ────────────────────────────────────────────────────────────────
 const LessonDot = ({ done }: { done: boolean }) => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     {done
@@ -54,7 +54,7 @@ function moduleStatus(moduleId: string, totalLessons: number, completed: Set<str
   for (let i = 1; i <= totalLessons; i++) {
     if (completed.has(`p${pillarId}-m${moduleNum}-l${i}`)) done++
   }
-  if (done === 0)           return 'Not Started'
+  if (done === 0)            return 'Not Started'
   if (done === totalLessons) return 'Complete ✓'
   return `In Progress · ${done}/${totalLessons}`
 }
@@ -65,23 +65,22 @@ function overallProgress(completed: Set<string>): number {
   return Math.round((completed.size / total) * 100)
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const navigate  = useNavigate()
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const [expandedId,   setExpandedId]   = useState<string | null>(null)
-  const [headerOpaque, setHeaderOpaque] = useState(true)
-  const [name,         setName]         = useState(localStorage.getItem('hb_name') || '')
-  const [streak,       setStreak]       = useState(0)
-  const [completed,    setCompleted]    = useState<Set<string>>(getCompleted)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [name,       setName]       = useState(localStorage.getItem('hb_name') || '')
+  const [streak,     setStreak]     = useState(0)
+  const [completed,  setCompleted]  = useState<Set<string>>(getCompleted)
 
   const avatarColor = localStorage.getItem('hb_avatar_color') || 'var(--terracotta)'
   const photo       = localStorage.getItem('hb_photo') || null
   const initial     = name ? name[0].toUpperCase() : '?'
   const pillarPct   = overallProgress(completed)
 
-  // Fetch profile from Supabase
+  // Fetch profile
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -99,23 +98,14 @@ export default function Dashboard() {
     fetchProfile()
   }, [])
 
-  // Re-read progress whenever dashboard gains focus
+  // Re-read progress on focus
   useEffect(() => {
     const sync = () => setCompleted(getCompleted())
     window.addEventListener('focus', sync)
     return () => window.removeEventListener('focus', sync)
   }, [])
 
-  // Sticky header scroll effect
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const onScroll = () => setHeaderOpaque(el.scrollTop < 10)
-    el.addEventListener('scroll', onScroll)
-    return () => el.removeEventListener('scroll', onScroll)
-  }, [])
-
-  // Find first incomplete lesson across all dashboard modules
+  // First incomplete lesson
   const getResumeRoute = () => {
     for (const m of dashModules) {
       const [pillarId, moduleNum] = m.id.split('-')
@@ -142,29 +132,25 @@ export default function Dashboard() {
         {/* ── STICKY HEADER ── */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 50,
-          background: headerOpaque ? 'var(--slate)' : 'transparent',
-          transition: 'background 0.3s ease',
+          background: 'var(--slate)',
           padding: '48px 24px 0',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: 20 }}>
             <div>
               <p style={{
-                fontSize: '0.75rem', letterSpacing: '0.06em', marginBottom: 4,
-                color: headerOpaque ? 'var(--terracotta-light)' : 'var(--terracotta)',
-                transition: 'color 0.3s',
+                fontSize: '0.75rem', letterSpacing: '0.06em',
+                marginBottom: 4, color: 'var(--terracotta-light)',
               }}>
                 {getGreeting().toUpperCase()}
               </p>
-              <h1 style={{
-                fontSize: '1.6rem',
-                color: headerOpaque ? 'var(--cream)' : 'var(--slate)',
-                transition: 'color 0.3s',
-              }}>
+              <h1 style={{ fontSize: '1.6rem', color: 'var(--cream)' }}>
                 {name ? `${name} 👋` : 'Hey there 👋'}
               </h1>
             </div>
             <button
               onClick={() => navigate('/profile')}
+              onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
+              onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
               style={{
                 width: 44, height: 44, borderRadius: '50%',
                 background: photo ? 'transparent' : avatarColor,
@@ -173,10 +159,8 @@ export default function Dashboard() {
                 alignItems: 'center', justifyContent: 'center',
                 fontSize: '1rem', color: 'white',
                 fontFamily: 'var(--font-display)', fontWeight: 600,
-                flexShrink: 0,
+                flexShrink: 0, transition: 'transform 0.15s',
               }}
-              onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
-              onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
               {photo
                 ? <img src={photo} alt="PFP" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -227,14 +211,15 @@ export default function Dashboard() {
 
           <button
             onClick={() => navigate(getResumeRoute())}
+            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
             style={{
               background: 'var(--terracotta)', color: 'white',
               fontWeight: 700, fontSize: '0.95rem',
               padding: '13px 32px', borderRadius: 'var(--radius-md)',
               boxShadow: '0 4px 16px rgba(193,105,79,0.35)',
+              transition: 'transform 0.15s',
             }}
-            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
-            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
           >
             Continue Learning →
           </button>
@@ -290,7 +275,7 @@ export default function Dashboard() {
             {dashModules.map(m => {
               const isExpanded = expandedId === m.id
               const [pillarId, moduleNum] = m.id.split('-')
-              const status = moduleStatus(m.id, m.lessons.length, completed)
+              const status     = moduleStatus(m.id, m.lessons.length, completed)
               const isComplete = status.startsWith('Complete')
 
               return (
@@ -301,10 +286,12 @@ export default function Dashboard() {
                   {/* Module row */}
                   <div
                     onClick={() => setExpandedId(isExpanded ? null : m.id)}
+                    onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.985)')}
+                    onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
                     style={{
                       background: 'var(--white)', padding: '16px',
                       display: 'flex', alignItems: 'center', gap: 14,
-                      cursor: 'pointer', transition: 'background 0.15s',
+                      cursor: 'pointer', transition: 'transform 0.15s',
                     }}
                   >
                     <div style={{
@@ -339,11 +326,13 @@ export default function Dashboard() {
                           <div
                             key={lesson.id}
                             onClick={() => navigate(`/lesson/${m.id}/${idx + 1}`)}
+                            onMouseDown={e => (e.currentTarget.style.background = 'var(--cream)')}
+                            onMouseUp={e => (e.currentTarget.style.background = 'transparent')}
                             style={{
                               padding: '12px 16px 12px 20px',
                               display: 'flex', alignItems: 'center', gap: 10,
                               borderBottom: idx < m.lessons.length - 1 ? '1px solid var(--cream-dark)' : 'none',
-                              cursor: 'pointer',
+                              cursor: 'pointer', transition: 'background 0.15s',
                             }}
                           >
                             <LessonDot done={isDone} />
@@ -373,14 +362,15 @@ export default function Dashboard() {
                             }
                             navigate(`/lesson/${m.id}/1`)
                           }}
+                          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.98)')}
+                          onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
                           style={{
                             width: '100%', padding: '11px',
                             background: 'var(--terracotta)', color: 'white',
                             borderRadius: 'var(--radius-md)',
                             fontWeight: 700, fontSize: '0.85rem',
+                            transition: 'transform 0.15s',
                           }}
-                          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.98)')}
-                          onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
                         >
                           {status === 'Not Started'
                             ? 'Start Module →'
@@ -409,12 +399,16 @@ export default function Dashboard() {
             <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'white', marginBottom: 3 }}>⚡ Go Unlimited</p>
             <p style={{ fontSize: '0.75rem', color: '#a0a0b0', lineHeight: 1.5 }}>Unlock quizzes, certifications, badges, and degrees for $7.99/mo</p>
           </div>
-          <button style={{
-            background: 'var(--terracotta)', color: 'white',
-            fontSize: '0.78rem', fontWeight: 700,
-            padding: '9px 14px', borderRadius: 20,
-            flexShrink: 0, marginLeft: 12,
-          }}>
+          <button
+            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.95)')}
+            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+            style={{
+              background: 'var(--terracotta)', color: 'white',
+              fontSize: '0.78rem', fontWeight: 700,
+              padding: '9px 14px', borderRadius: 20,
+              flexShrink: 0, marginLeft: 12, transition: 'transform 0.15s',
+            }}
+          >
             Upgrade
           </button>
         </div>
@@ -429,7 +423,9 @@ export default function Dashboard() {
           <p style={{ fontSize: '0.82rem', color: 'var(--slate-muted)', lineHeight: 1.6 }}>Free local help for food, housing, and financial assistance — updated for your state.</p>
           <button
             onClick={() => navigate('/resources')}
-            style={{ marginTop: 10, fontSize: '0.8rem', fontWeight: 600, color: 'var(--terracotta)', background: 'none', padding: 0 }}
+            onMouseDown={e => (e.currentTarget.style.opacity = '0.6')}
+            onMouseUp={e => (e.currentTarget.style.opacity = '1')}
+            style={{ marginTop: 10, fontSize: '0.8rem', fontWeight: 600, color: 'var(--terracotta)', background: 'none', padding: 0, transition: 'opacity 0.15s' }}
           >
             View resources →
           </button>
