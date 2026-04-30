@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import PageTransition from '../components/PageTransition'
+import CoachMarks from '../components/CoachMarks'
 
-// ─── Progress helpers ──────────────────────────────────────────────────────────
 const PROGRESS_KEY = 'hb_completed_lessons'
 
 function getCompleted(): Set<string> {
@@ -14,11 +14,9 @@ function getCompleted(): Set<string> {
   } catch { return new Set() }
 }
 
-// ─── Data from content.ts ──────────────────────────────────────────────────────
 const pillar1     = pillars.find(p => p.id === '1')!
 const dashModules = pillar1.modules.slice(0, 4)
 
-// ─── Static highlights ─────────────────────────────────────────────────────────
 const highlights = [
   { id: 'b1', emoji: '📖', label: 'First Lesson',    earned: true  },
   { id: 'b2', emoji: '💡', label: 'Pay Stub Pro',     earned: true  },
@@ -28,7 +26,6 @@ const highlights = [
   { id: 'm2', emoji: '⚡', label: 'Fast Learner',     earned: false },
 ]
 
-// ─── Lesson dot ────────────────────────────────────────────────────────────────
 const LessonDot = ({ done }: { done: boolean }) => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     {done
@@ -65,7 +62,6 @@ function overallProgress(completed: Set<string>): number {
   return Math.round((completed.size / total) * 100)
 }
 
-// ─── Component ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const navigate  = useNavigate()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -74,13 +70,13 @@ export default function Dashboard() {
   const [name,       setName]       = useState(localStorage.getItem('hb_name') || '')
   const [streak,     setStreak]     = useState(0)
   const [completed,  setCompleted]  = useState<Set<string>>(getCompleted)
+  const [showCoach,  setShowCoach]  = useState(false)
 
   const avatarColor = localStorage.getItem('hb_avatar_color') || 'var(--terracotta)'
   const photo       = localStorage.getItem('hb_photo') || null
   const initial     = name ? name[0].toUpperCase() : '?'
   const pillarPct   = overallProgress(completed)
 
-  // Fetch profile
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -98,14 +94,21 @@ export default function Dashboard() {
     fetchProfile()
   }, [])
 
-  // Re-read progress on focus
   useEffect(() => {
     const sync = () => setCompleted(getCompleted())
     window.addEventListener('focus', sync)
     return () => window.removeEventListener('focus', sync)
   }, [])
 
-  // First incomplete lesson
+  // Fire coach marks once, after a short delay so the UI is painted
+  useEffect(() => {
+    const done = localStorage.getItem('hb_tutorial_done') === 'true'
+    if (!done) {
+      const t = setTimeout(() => setShowCoach(true), 900)
+      return () => clearTimeout(t)
+    }
+  }, [])
+
   const getResumeRoute = () => {
     for (const m of dashModules) {
       const [pillarId, moduleNum] = m.id.split('-')
@@ -122,11 +125,7 @@ export default function Dashboard() {
     <PageTransition>
       <div
         ref={scrollRef}
-        style={{
-          height: '100vh', overflowY: 'auto',
-          background: 'var(--cream)',
-          paddingBottom: 100,
-        }}
+        style={{ height: '100vh', overflowY: 'auto', background: 'var(--cream)', paddingBottom: 100 }}
       >
 
         {/* ── STICKY HEADER ── */}
@@ -137,10 +136,7 @@ export default function Dashboard() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: 20 }}>
             <div>
-              <p style={{
-                fontSize: '0.75rem', letterSpacing: '0.06em',
-                marginBottom: 4, color: 'var(--terracotta-light)',
-              }}>
+              <p style={{ fontSize: '0.75rem', letterSpacing: '0.06em', marginBottom: 4, color: 'var(--terracotta-light)' }}>
                 {getGreeting().toUpperCase()}
               </p>
               <h1 style={{ fontSize: '1.6rem', color: 'var(--cream)' }}>
@@ -148,6 +144,7 @@ export default function Dashboard() {
               </h1>
             </div>
             <button
+              data-coach="nav-profile"
               onClick={() => navigate('/profile')}
               onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
               onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
@@ -176,7 +173,6 @@ export default function Dashboard() {
           padding: '0 24px 36px',
           display: 'flex', flexDirection: 'column', alignItems: 'center',
         }}>
-          {/* Progress circle */}
           <div style={{ position: 'relative', width: 160, height: 160, marginBottom: 20 }}>
             <svg width="160" height="160" style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}>
               <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
@@ -210,6 +206,7 @@ export default function Dashboard() {
           </div>
 
           <button
+            data-coach="continue"
             onClick={() => navigate(getResumeRoute())}
             onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
             onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
@@ -224,11 +221,14 @@ export default function Dashboard() {
             Continue Learning →
           </button>
 
-          <div style={{
-            marginTop: 16, padding: '8px 16px',
-            background: 'rgba(255,255,255,0.07)', borderRadius: 20,
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
+          <div
+            data-coach="streak"
+            style={{
+              marginTop: 16, padding: '8px 16px',
+              background: 'rgba(255,255,255,0.07)', borderRadius: 20,
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}
+          >
             <span style={{ fontSize: '1rem' }}>🔥</span>
             <p style={{ fontSize: '0.82rem', color: 'var(--cream)', fontWeight: 600 }}>{streak}-day streak</p>
             <p style={{ fontSize: '0.75rem', color: '#a0a0b0' }}>· keep it going</p>
@@ -283,7 +283,6 @@ export default function Dashboard() {
                   borderRadius: 'var(--radius-md)', overflow: 'hidden',
                   boxShadow: 'var(--shadow-sm)', border: '1.5px solid var(--cream-dark)',
                 }}>
-                  {/* Module row */}
                   <div
                     onClick={() => setExpandedId(isExpanded ? null : m.id)}
                     onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.985)')}
@@ -316,7 +315,6 @@ export default function Dashboard() {
                     }}>›</span>
                   </div>
 
-                  {/* Lesson list */}
                   {isExpanded && (
                     <div style={{ background: '#fdf9f7', borderTop: '1px solid var(--cream-dark)' }}>
                       {m.lessons.map((lesson, idx) => {
@@ -349,7 +347,6 @@ export default function Dashboard() {
                         )
                       })}
 
-                      {/* Start / Continue button */}
                       <div style={{ padding: '12px 16px' }}>
                         <button
                           onClick={() => {
@@ -432,6 +429,10 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {/* ── COACH MARKS ── */}
+      {showCoach && <CoachMarks onDone={() => setShowCoach(false)} />}
+
     </PageTransition>
   )
 }
