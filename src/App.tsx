@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'framer-motion'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import OnboardingAuth from './screens/OnboardingAuth'
 import LoadingScreen from './screens/LoadingScreen'
