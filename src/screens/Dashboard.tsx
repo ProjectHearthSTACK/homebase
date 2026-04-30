@@ -6,6 +6,7 @@ import PageTransition from '../components/PageTransition'
 import CoachMarks from '../components/CoachMarks'
 
 const PROGRESS_KEY = 'hb_completed_lessons'
+const ENROLLED_KEY = 'hb_enrolled_modules'
 
 function getCompleted(): Set<string> {
   try {
@@ -14,8 +15,14 @@ function getCompleted(): Set<string> {
   } catch { return new Set() }
 }
 
-const pillar1     = pillars.find(p => p.id === '1')!
-const dashModules = pillar1.modules.slice(0, 4)
+function getEnrolledIds(): string[] {
+  try {
+    const raw = localStorage.getItem(ENROLLED_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
+
+const pillar1 = pillars.find(p => p.id === '1')!
 
 const highlights = [
   { id: 'b1', emoji: '📖', label: 'First Lesson',    earned: true  },
@@ -56,8 +63,8 @@ function moduleStatus(moduleId: string, totalLessons: number, completed: Set<str
   return `In Progress · ${done}/${totalLessons}`
 }
 
-function overallProgress(completed: Set<string>): number {
-  const total = pillar1.modules.reduce((acc, m) => acc + m.lessons.length, 0)
+function overallProgress(enrolledModules: typeof pillar1.modules, completed: Set<string>): number {
+  const total = enrolledModules.reduce((acc, m) => acc + m.lessons.length, 0)
   if (total === 0) return 0
   return Math.round((completed.size / total) * 100)
 }
@@ -66,16 +73,18 @@ export default function Dashboard() {
   const navigate  = useNavigate()
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [name,       setName]       = useState(localStorage.getItem('hb_name') || '')
-  const [streak,     setStreak]     = useState(0)
-  const [completed,  setCompleted]  = useState<Set<string>>(getCompleted)
-  const [showCoach,  setShowCoach]  = useState(false)
+  const [expandedId,   setExpandedId]   = useState<string | null>(null)
+  const [name,         setName]         = useState(localStorage.getItem('hb_name') || '')
+  const [streak,       setStreak]       = useState(0)
+  const [completed,    setCompleted]    = useState<Set<string>>(getCompleted)
+  const [enrolledIds,  setEnrolledIds]  = useState<string[]>(getEnrolledIds)
+  const [showCoach,    setShowCoach]    = useState(false)
 
-  const avatarColor = localStorage.getItem('hb_avatar_color') || 'var(--terracotta)'
-  const photo       = localStorage.getItem('hb_photo') || null
-  const initial     = name ? name[0].toUpperCase() : '?'
-  const pillarPct   = overallProgress(completed)
+  const avatarColor     = localStorage.getItem('hb_avatar_color') || 'var(--terracotta)'
+  const photo           = localStorage.getItem('hb_photo') || null
+  const initial         = name ? name[0].toUpperCase() : '?'
+  const enrolledModules = pillar1.modules.filter(m => enrolledIds.includes(m.id))
+  const pillarPct       = overallProgress(enrolledModules, completed)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -95,12 +104,15 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
-    const sync = () => setCompleted(getCompleted())
+    const sync = () => {
+      setCompleted(getCompleted())
+      setEnrolledIds(getEnrolledIds())
+    }
     window.addEventListener('focus', sync)
     return () => window.removeEventListener('focus', sync)
   }, [])
 
-  // Fire coach marks once, after a short delay so the UI is painted
+  // Coach marks — fire once after first load
   useEffect(() => {
     const done = localStorage.getItem('hb_tutorial_done') === 'true'
     if (!done) {
@@ -110,7 +122,8 @@ export default function Dashboard() {
   }, [])
 
   const getResumeRoute = () => {
-    for (const m of dashModules) {
+    const targets = enrolledModules.length > 0 ? enrolledModules : [pillar1.modules[0]]
+    for (const m of targets) {
       const [pillarId, moduleNum] = m.id.split('-')
       for (let i = 1; i <= m.lessons.length; i++) {
         if (!completed.has(`p${pillarId}-m${moduleNum}-l${i}`)) {
@@ -118,7 +131,7 @@ export default function Dashboard() {
         }
       }
     }
-    return `/lesson/${dashModules[0].id}/1`
+    return `/lesson/${pillar1.modules[0].id}/1`
   }
 
   return (
@@ -201,7 +214,9 @@ export default function Dashboard() {
                   }}>{initial}</div>
               }
               <p style={{ fontSize: '1.3rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{pillarPct}%</p>
-              <p style={{ fontSize: '0.6rem', color: '#a0a0b0', letterSpacing: '0.05em' }}>PILLAR 1</p>
+              <p style={{ fontSize: '0.6rem', color: '#a0a0b0', letterSpacing: '0.05em' }}>
+                {enrolledModules.length > 0 ? 'YOUR PROGRESS' : 'GET STARTED'}
+              </p>
             </div>
           </div>
 
@@ -218,7 +233,7 @@ export default function Dashboard() {
               transition: 'transform 0.15s',
             }}
           >
-            Continue Learning →
+            {enrolledModules.length > 0 ? 'Continue Learning →' : 'Start Learning →'}
           </button>
 
           <div
@@ -270,119 +285,162 @@ export default function Dashboard() {
 
         {/* ── YOUR MODULES ── */}
         <div style={{ padding: '24px 24px 0' }}>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--slate)', marginBottom: 14 }}>Your Modules</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {dashModules.map(m => {
-              const isExpanded = expandedId === m.id
-              const [pillarId, moduleNum] = m.id.split('-')
-              const status     = moduleStatus(m.id, m.lessons.length, completed)
-              const isComplete = status.startsWith('Complete')
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--slate)' }}>Your Modules</h2>
+            {enrolledModules.length > 0 && (
+              <button
+                onClick={() => navigate('/modules')}
+                style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--terracotta)', background: 'none', padding: 0 }}
+              >
+                Browse all →
+              </button>
+            )}
+          </div>
 
-              return (
-                <div key={m.id} style={{
-                  borderRadius: 'var(--radius-md)', overflow: 'hidden',
-                  boxShadow: 'var(--shadow-sm)', border: '1.5px solid var(--cream-dark)',
-                }}>
-                  <div
-                    onClick={() => setExpandedId(isExpanded ? null : m.id)}
-                    onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.985)')}
-                    onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-                    style={{
-                      background: 'var(--white)', padding: '16px',
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      cursor: 'pointer', transition: 'transform 0.15s',
-                    }}
-                  >
-                    <div style={{
-                      width: 46, height: 46, borderRadius: 12,
-                      background: isComplete ? '#e8f5e9' : '#FFF0EC',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '1.4rem', flexShrink: 0,
-                    }}>
-                      {isComplete ? '✅' : m.emoji}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 3 }}>{m.title}</p>
-                      <p style={{ fontSize: '0.76rem', color: isComplete ? '#2E7D52' : 'var(--slate-muted)' }}>
-                        {status}
-                      </p>
-                    </div>
-                    <span style={{
-                      color: 'var(--terracotta)', fontSize: '1.1rem',
-                      transition: 'transform 0.2s',
-                      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                      display: 'inline-block',
-                    }}>›</span>
-                  </div>
+          {enrolledModules.length === 0 ? (
+            /* ── EMPTY STATE ── */
+            <div style={{
+              background: 'var(--white)',
+              borderRadius: 'var(--radius-md)',
+              border: '1.5px dashed var(--cream-dark)',
+              padding: '36px 24px',
+              textAlign: 'center',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+            }}>
+              <div style={{ fontSize: '2.4rem' }}>📚</div>
+              <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--slate)' }}>No modules yet</p>
+              <p style={{ fontSize: '0.83rem', color: 'var(--slate-muted)', lineHeight: 1.65, maxWidth: 240 }}>
+                Head to Learn, pick a module, and hit Start. It'll show up here so you can track your progress.
+              </p>
+              <button
+                onClick={() => navigate('/modules')}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                style={{
+                  marginTop: 6,
+                  background: 'var(--terracotta)', color: 'white',
+                  fontWeight: 700, fontSize: '0.88rem',
+                  padding: '11px 28px', borderRadius: 'var(--radius-md)',
+                  transition: 'transform 0.15s',
+                }}
+              >
+                Browse Modules →
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {enrolledModules.map(m => {
+                const isExpanded = expandedId === m.id
+                const [pillarId, moduleNum] = m.id.split('-')
+                const status     = moduleStatus(m.id, m.lessons.length, completed)
+                const isComplete = status.startsWith('Complete')
 
-                  {isExpanded && (
-                    <div style={{ background: '#fdf9f7', borderTop: '1px solid var(--cream-dark)' }}>
-                      {m.lessons.map((lesson, idx) => {
-                        const lessonId = `p${pillarId}-m${moduleNum}-l${idx + 1}`
-                        const isDone   = completed.has(lessonId)
-                        return (
-                          <div
-                            key={lesson.id}
-                            onClick={() => navigate(`/lesson/${m.id}/${idx + 1}`)}
-                            onMouseDown={e => (e.currentTarget.style.background = 'var(--cream)')}
-                            onMouseUp={e => (e.currentTarget.style.background = 'transparent')}
+                return (
+                  <div key={m.id} style={{
+                    borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                    boxShadow: 'var(--shadow-sm)', border: '1.5px solid var(--cream-dark)',
+                  }}>
+                    <div
+                      onClick={() => setExpandedId(isExpanded ? null : m.id)}
+                      onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.985)')}
+                      onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                      style={{
+                        background: 'var(--white)', padding: '16px',
+                        display: 'flex', alignItems: 'center', gap: 14,
+                        cursor: 'pointer', transition: 'transform 0.15s',
+                      }}
+                    >
+                      <div style={{
+                        width: 46, height: 46, borderRadius: 12,
+                        background: isComplete ? '#e8f5e9' : '#FFF0EC',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.4rem', flexShrink: 0,
+                      }}>
+                        {isComplete ? '✅' : m.emoji}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 3 }}>{m.title}</p>
+                        <p style={{ fontSize: '0.76rem', color: isComplete ? '#2E7D52' : 'var(--slate-muted)' }}>
+                          {status}
+                        </p>
+                      </div>
+                      <span style={{
+                        color: 'var(--terracotta)', fontSize: '1.1rem',
+                        transition: 'transform 0.2s',
+                        transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                        display: 'inline-block',
+                      }}>›</span>
+                    </div>
+
+                    {isExpanded && (
+                      <div style={{ background: '#fdf9f7', borderTop: '1px solid var(--cream-dark)' }}>
+                        {m.lessons.map((lesson, idx) => {
+                          const lessonId = `p${pillarId}-m${moduleNum}-l${idx + 1}`
+                          const isDone   = completed.has(lessonId)
+                          return (
+                            <div
+                              key={lesson.id}
+                              onClick={() => navigate(`/lesson/${m.id}/${idx + 1}`)}
+                              onMouseDown={e => (e.currentTarget.style.background = 'var(--cream)')}
+                              onMouseUp={e => (e.currentTarget.style.background = 'transparent')}
+                              style={{
+                                padding: '12px 16px 12px 20px',
+                                display: 'flex', alignItems: 'center', gap: 10,
+                                borderBottom: idx < m.lessons.length - 1 ? '1px solid var(--cream-dark)' : 'none',
+                                cursor: 'pointer', transition: 'background 0.15s',
+                              }}
+                            >
+                              <LessonDot done={isDone} />
+                              <p style={{
+                                flex: 1, fontSize: '0.84rem',
+                                color: isDone ? 'var(--slate-muted)' : 'var(--slate)',
+                                fontWeight: isDone ? 400 : 500,
+                                lineHeight: 1.4,
+                              }}>
+                                {lesson.title}
+                              </p>
+                              <span style={{ color: 'var(--terracotta)', fontSize: '0.85rem' }}>›</span>
+                            </div>
+                          )
+                        })}
+
+                        <div style={{ padding: '12px 16px' }}>
+                          <button
+                            onClick={() => {
+                              const [pId, mNum] = m.id.split('-')
+                              for (let i = 1; i <= m.lessons.length; i++) {
+                                if (!completed.has(`p${pId}-m${mNum}-l${i}`)) {
+                                  navigate(`/lesson/${m.id}/${i}`)
+                                  return
+                                }
+                              }
+                              navigate(`/lesson/${m.id}/1`)
+                            }}
+                            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.98)')}
+                            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
                             style={{
-                              padding: '12px 16px 12px 20px',
-                              display: 'flex', alignItems: 'center', gap: 10,
-                              borderBottom: idx < m.lessons.length - 1 ? '1px solid var(--cream-dark)' : 'none',
-                              cursor: 'pointer', transition: 'background 0.15s',
+                              width: '100%', padding: '11px',
+                              background: 'var(--terracotta)', color: 'white',
+                              borderRadius: 'var(--radius-md)',
+                              fontWeight: 700, fontSize: '0.85rem',
+                              transition: 'transform 0.15s',
                             }}
                           >
-                            <LessonDot done={isDone} />
-                            <p style={{
-                              flex: 1, fontSize: '0.84rem',
-                              color: isDone ? 'var(--slate-muted)' : 'var(--slate)',
-                              fontWeight: isDone ? 400 : 500,
-                              lineHeight: 1.4,
-                            }}>
-                              {lesson.title}
-                            </p>
-                            <span style={{ color: 'var(--terracotta)', fontSize: '0.85rem' }}>›</span>
-                          </div>
-                        )
-                      })}
-
-                      <div style={{ padding: '12px 16px' }}>
-                        <button
-                          onClick={() => {
-                            const [pId, mNum] = m.id.split('-')
-                            for (let i = 1; i <= m.lessons.length; i++) {
-                              if (!completed.has(`p${pId}-m${mNum}-l${i}`)) {
-                                navigate(`/lesson/${m.id}/${i}`)
-                                return
-                              }
+                            {status === 'Not Started'
+                              ? 'Start Module →'
+                              : isComplete
+                                ? 'Review Module →'
+                                : 'Continue →'
                             }
-                            navigate(`/lesson/${m.id}/1`)
-                          }}
-                          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.98)')}
-                          onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-                          style={{
-                            width: '100%', padding: '11px',
-                            background: 'var(--terracotta)', color: 'white',
-                            borderRadius: 'var(--radius-md)',
-                            fontWeight: 700, fontSize: '0.85rem',
-                            transition: 'transform 0.15s',
-                          }}
-                        >
-                          {status === 'Not Started'
-                            ? 'Start Module →'
-                            : isComplete
-                              ? 'Review Module →'
-                              : 'Continue →'
-                          }
-                        </button>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* ── UNLIMITED UPSELL ── */}
@@ -430,7 +488,6 @@ export default function Dashboard() {
 
       </div>
 
-      {/* ── COACH MARKS ── */}
       {showCoach && <CoachMarks onDone={() => setShowCoach(false)} />}
 
     </PageTransition>
