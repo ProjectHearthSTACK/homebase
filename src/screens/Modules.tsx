@@ -28,8 +28,14 @@ export default function Modules() {
   return (
     <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--cream)', paddingBottom: 100 }}>
 
-      {/* HEADER */}
-      <div style={{ background: 'var(--slate)', padding: '52px 24px 0' }}>
+      {/* HEADER — sticky */}
+      <div style={{
+        background: 'var(--slate)',
+        padding: '52px 24px 0',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+      }}>
         <p style={{ fontSize: '0.72rem', color: 'var(--terracotta-light)', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>
           HOMEBASE
         </p>
@@ -45,6 +51,8 @@ export default function Modules() {
               <button
                 key={p.id}
                 onClick={() => { setActivePillar(p.id); setExpandedId(null) }}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.96)')}
+                onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
                 style={{
                   flexShrink: 0,
                   padding: '8px 14px',
@@ -96,12 +104,15 @@ export default function Modules() {
               {/* MODULE ROW */}
               <div
                 onClick={() => setExpandedId(isExpanded ? null : mod.id)}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.985)')}
+                onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
                 style={{
                   padding: '14px 16px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
                   cursor: 'pointer',
+                  transition: 'transform 0.15s',
                 }}
               >
                 {/* Emoji + number badge */}
@@ -161,11 +172,14 @@ export default function Modules() {
                     <div
                       key={lesson.id}
                       onClick={() => navigate(`/lesson/${mod.id}/${lIdx + 1}`)}
+                      onMouseDown={e => (e.currentTarget.style.background = 'var(--cream)')}
+                      onMouseUp={e => (e.currentTarget.style.background = 'transparent')}
                       style={{
                         padding: '11px 16px 11px 20px',
                         display: 'flex', alignItems: 'center', gap: 10,
                         borderBottom: lIdx < mod.lessons.length - 1 ? '1px solid var(--cream-dark)' : 'none',
                         cursor: 'pointer',
+                        transition: 'background 0.15s',
                       }}
                     >
                       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0 }}>
@@ -205,6 +219,8 @@ export default function Modules() {
                         const target = firstIncomplete === -1 ? 0 : firstIncomplete
                         navigate(`/lesson/${mod.id}/${target + 1}`)
                       }}
+                      onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                      onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
                       style={{
                         width: '100%',
                         padding: '11px',
@@ -213,6 +229,7 @@ export default function Modules() {
                         borderRadius: 'var(--radius-md)',
                         fontWeight: 700,
                         fontSize: '0.85rem',
+                        transition: 'transform 0.15s',
                       }}
                     >
                       {completedCount === 0
