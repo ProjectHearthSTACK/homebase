@@ -1,4 +1,3 @@
-// src/screens/ModuleLesson.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -7,6 +6,19 @@ import { lessonCards, LessonCard } from '../lessonContent'
 import { lessonProse } from '../lessonProse'
 import PageTransition from '../components/PageTransition'
 
+// ─── Progress helpers ─────────────────────────────────────────────────────────
+const PROGRESS_KEY = 'hb_completed_lessons'
+
+function markLessonComplete(lessonId: string) {
+  try {
+    const existing: string[] = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '[]')
+    if (!existing.includes(lessonId)) {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify([...existing, lessonId]))
+    }
+  } catch { /* silent */ }
+}
+
+// ─── Card config ──────────────────────────────────────────────────────────────
 const typeBg: Record<string, string> = {
   hook:  '#2D3142',
   learn: '#FFFFFF',
@@ -21,19 +33,20 @@ const typeLabel: Record<string, string> = {
   win:   'Complete',
 }
 
+// ─── Placeholder cards for modules without real content yet ──────────────────
 function buildPlaceholderCards(lessonTitle: string, moduleTitle: string): LessonCard[] {
   return [
     {
       id: 'hook',
       type: 'hook',
       title: lessonTitle,
-      body: `This page is part of "${moduleTitle}." Full content coming soon.`,
+      body: `This page is part of "${moduleTitle}."\n\nFull content coming soon.`,
     },
     {
       id: 'learn',
       type: 'learn',
-      title: 'What You\'ll Learn',
-      body: `"${lessonTitle}" walks you through one focused concept so you can understand it, apply it, and move on with confidence. No jargon. No fluff.`,
+      title: "What You'll Learn",
+      body: `"${lessonTitle}" walks you through one focused concept so you can understand it, apply it, and move on with confidence.\n\nNo jargon. No fluff.`,
     },
     {
       id: 'apply',
@@ -50,23 +63,25 @@ function buildPlaceholderCards(lessonTitle: string, moduleTitle: string): Lesson
   ]
 }
 
+// ─── Card slide animation ─────────────────────────────────────────────────────
 const cardVariants = {
   enter: (d: number) => ({
-    x: d > 0 ? 32 : -32,
+    x: d > 0 ? 40 : -40,
     opacity: 0,
   }),
   center: {
     x: 0,
     opacity: 1,
-    transition: { duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] as const },
   },
   exit: (d: number) => ({
-    x: d > 0 ? -32 : 32,
+    x: d > 0 ? -40 : 40,
     opacity: 0,
-    transition: { duration: 0.16, ease: 'easeIn' },
+    transition: { duration: 0.16, ease: 'easeIn' as const },
   }),
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function ModuleLesson() {
   const navigate = useNavigate()
   const { moduleId, lessonNumber } = useParams()
@@ -77,41 +92,47 @@ export default function ModuleLesson() {
   const [finished,  setFinished]  = useState(false)
   const [showProse, setShowProse] = useState(false)
 
+  // Derived from content.ts
   const lessonNum  = Number(lessonNumber) || 1
   const lessonData = moduleId ? getLesson(moduleId, lessonNum) : undefined
   const moduleData = moduleId ? getModule(moduleId) : undefined
 
-  const lessonTitle  = lessonData?.lesson.title  || `Page ${lessonNum}`
-  const moduleTitle  = lessonData?.module.title  || moduleData?.title || 'Module'
-  const pillarTitle  = lessonData?.pillar.title  || ''
+  const lessonTitle  = lessonData?.lesson.title || `Page ${lessonNum}`
+  const moduleTitle  = lessonData?.module.title || moduleData?.title || 'Module'
+  const pillarTitle  = lessonData?.pillar.title || ''
   const totalLessons = moduleData?.lessons.length || 1
 
+  // Build lesson ID for content + progress lookup
+  const lessonId = moduleId
+    ? `p${moduleId.split('-')[0]}-m${moduleId.split('-')[1]}-l${lessonNum}`
+    : ''
+
+  // Load cards on lesson change
   useEffect(() => {
     if (!moduleId) return
-    const [pillarId, moduleNum] = moduleId.split('-')
-    const lessonId  = `p${pillarId}-m${moduleNum}-l${lessonNum}`
     const realCards = lessonCards[lessonId]
     setCards(realCards ?? buildPlaceholderCards(lessonTitle, moduleTitle))
     setIndex(0)
     setFinished(false)
     setShowProse(false)
-  }, [moduleId, lessonNumber, lessonTitle, moduleTitle])
+  }, [moduleId, lessonNumber, lessonTitle, moduleTitle, lessonId])
 
-  const proseKey  = moduleId
-    ? `p${moduleId.split('-')[0]}-m${moduleId.split('-')[1]}-l${lessonNum}`
-    : ''
-  const proseText = lessonProse[proseKey]
+  const proseText = lessonProse[lessonId]
+  const card      = cards[index]
+  const isLast    = index === cards.length - 1
+  const isDark    = card?.type === 'hook'
 
-  const card   = cards[index]
-  const isLast = index === cards.length - 1
-  const isDark = card?.type === 'hook'
-
+  // Mark complete and navigate to next lesson or back to modules
   const handleFinish = () => {
+    if (lessonId) markLessonComplete(lessonId)
     setFinished(true)
     const next = lessonNum + 1
     setTimeout(() => {
-      if (next <= totalLessons) navigate(`/lesson/${moduleId}/${next}`)
-      else navigate('/modules')
+      if (next <= totalLessons) {
+        navigate(`/lesson/${moduleId}/${next}`)
+      } else {
+        navigate('/modules')
+      }
     }, 350)
   }
 
@@ -120,6 +141,7 @@ export default function ModuleLesson() {
     setIndex(next)
   }
 
+  // ── Not found ──────────────────────────────────────────────────────────────
   if (!card) return (
     <PageTransition>
       <div style={{
@@ -137,6 +159,7 @@ export default function ModuleLesson() {
     </PageTransition>
   )
 
+  // ── Lesson view ────────────────────────────────────────────────────────────
   return (
     <PageTransition>
       <div
@@ -148,12 +171,12 @@ export default function ModuleLesson() {
           padding: '52px 28px 40px',
           maxWidth: 430,
           margin: '0 auto',
-          transition: 'background 0.3s ease',
+          transition: 'background 0.3s ease, opacity 0.3s ease',
           opacity: finished ? 0 : 1,
-          transition2: 'opacity 0.3s ease',
         }}
       >
-        {/* Top bar */}
+
+        {/* ── Top bar: back + progress dots + counter ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
           <button
             onClick={() => navigate('/modules')}
@@ -161,11 +184,15 @@ export default function ModuleLesson() {
               background: isDark ? 'rgba(255,255,255,0.1)' : 'var(--cream-dark)',
               borderRadius: '50%', width: 34, height: 34,
               color: isDark ? 'rgba(255,255,255,0.7)' : 'var(--slate-muted)',
-              fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.95rem', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}
+            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.9)')}
+            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
           >←</button>
 
+          {/* Progress bar */}
           <div style={{ flex: 1, display: 'flex', gap: 5 }}>
             {cards.map((_, i) => (
               <div
@@ -189,21 +216,23 @@ export default function ModuleLesson() {
           </span>
         </div>
 
-        {/* Breadcrumb */}
+        {/* ── Breadcrumb ── */}
         {pillarTitle && (
           <p style={{
-            fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.08em',
-            textTransform: 'uppercase', marginBottom: 6,
+            fontSize: '0.68rem', fontWeight: 600,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            marginBottom: 6,
             color: isDark ? 'rgba(255,255,255,0.38)' : 'var(--slate-muted)',
           }}>
             {pillarTitle} · {moduleTitle}
           </p>
         )}
 
-        {/* Card type label */}
+        {/* ── Card type label ── */}
         <p style={{
-          fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em',
-          textTransform: 'uppercase', marginBottom: 20,
+          fontSize: '0.7rem', fontWeight: 700,
+          letterSpacing: '0.1em', textTransform: 'uppercase',
+          marginBottom: 20,
           color: isDark
             ? 'rgba(255,255,255,0.5)'
             : card.type === 'apply' ? 'var(--terracotta)'
@@ -213,7 +242,7 @@ export default function ModuleLesson() {
           {typeLabel[card.type]}
         </p>
 
-        {/* Card content — animated */}
+        {/* ── Card content — animated ── */}
         <div style={{ flex: 1, position: 'relative', minHeight: 240 }}>
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div
@@ -243,15 +272,13 @@ export default function ModuleLesson() {
           </AnimatePresence>
         </div>
 
-        {/* Read in depth — only shown when prose exists */}
+        {/* ── Read in depth link (only when prose exists) ── */}
         {proseText && (
           <button
             onClick={() => setShowProse(true)}
             style={{
-              marginTop: 24,
-              background: 'transparent',
-              fontSize: '0.82rem',
-              fontWeight: 600,
+              marginTop: 24, background: 'transparent',
+              fontSize: '0.82rem', fontWeight: 600,
               color: isDark ? 'rgba(255,255,255,0.5)' : 'var(--slate-muted)',
               textDecoration: 'underline',
               textDecorationColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(44,52,64,0.2)',
@@ -260,12 +287,14 @@ export default function ModuleLesson() {
               alignSelf: 'flex-start',
               paddingBottom: 4,
             }}
+            onMouseDown={e => (e.currentTarget.style.opacity = '0.6')}
+            onMouseUp={e => (e.currentTarget.style.opacity = '1')}
           >
             Read in depth ↗
           </button>
         )}
 
-        {/* Navigation buttons */}
+        {/* ── Navigation buttons ── */}
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
           {index > 0 && (
             <button
@@ -275,7 +304,6 @@ export default function ModuleLesson() {
                 border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'var(--cream-dark)'}`,
                 background: 'transparent', fontSize: '0.9rem',
                 color: isDark ? 'rgba(255,255,255,0.5)' : 'var(--slate-muted)',
-                transition: 'all 0.15s',
               }}
               onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
               onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
@@ -296,7 +324,7 @@ export default function ModuleLesson() {
         </div>
       </div>
 
-      {/* ── Prose bottom sheet ─────────────────────────────────────────────── */}
+      {/* ── Prose bottom sheet ────────────────────────────────────────────────── */}
       <AnimatePresence>
         {showProse && proseText && (
           <>
@@ -324,11 +352,9 @@ export default function ModuleLesson() {
               transition={{ type: 'spring', stiffness: 300, damping: 32 }}
               style={{
                 position: 'fixed',
-                bottom: 0,
-                left: '50%',
+                bottom: 0, left: '50%',
                 transform: 'translateX(-50%)',
-                width: '100%',
-                maxWidth: 430,
+                width: '100%', maxWidth: 430,
                 height: '88vh',
                 background: 'var(--cream)',
                 borderRadius: '20px 20px 0 0',
@@ -347,13 +373,15 @@ export default function ModuleLesson() {
               }}>
                 <div>
                   <p style={{
-                    fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.09em',
-                    textTransform: 'uppercase', color: 'var(--terracotta)', marginBottom: 2,
+                    fontSize: '0.65rem', fontWeight: 700,
+                    letterSpacing: '0.09em', textTransform: 'uppercase',
+                    color: 'var(--terracotta)', marginBottom: 2,
                   }}>
                     Read in depth
                   </p>
                   <h3 style={{
-                    fontSize: '1rem', fontWeight: 700, color: 'var(--slate)', lineHeight: 1.3,
+                    fontSize: '1rem', fontWeight: 700,
+                    color: 'var(--slate)', lineHeight: 1.3,
                   }}>
                     {lessonTitle}
                   </h3>
@@ -367,6 +395,8 @@ export default function ModuleLesson() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}
+                  onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
+                  onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
                 >✕</button>
               </div>
 
