@@ -56,6 +56,41 @@ type ProfileData = {
   created_at: string
 }
 
+function ProfileSkeleton() {
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--cream)', paddingBottom: 100 }}>
+      {/* Header skeleton */}
+      <div style={{ background: 'var(--slate)', padding: '48px 24px 32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', animation: 'skeletonPulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ height: 22, width: 140, borderRadius: 6, background: 'rgba(255,255,255,0.1)', marginBottom: 10, animation: 'skeletonPulse 1.5s ease-in-out infinite' }} />
+            <div style={{ height: 14, width: 110, borderRadius: 10, background: 'rgba(255,255,255,0.07)', animation: 'skeletonPulse 1.5s ease-in-out infinite 0.15s' }} />
+          </div>
+        </div>
+      </div>
+      {/* Stats skeleton */}
+      <div style={{ display: 'flex', gap: 10, padding: '20px 24px 0' }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ flex: 1, height: 70, borderRadius: 'var(--radius-md)', background: 'var(--white)', border: '1.5px solid var(--cream-dark)', animation: `skeletonPulse 1.5s ease-in-out infinite ${i * 0.1}s` }} />
+        ))}
+      </div>
+      {/* Content skeleton */}
+      <div style={{ padding: '20px 24px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ height: 92, borderRadius: 'var(--radius-md)', background: 'var(--white)', border: '1.5px solid var(--cream-dark)', animation: 'skeletonPulse 1.5s ease-in-out infinite 0.25s' }} />
+        <div style={{ height: 152, borderRadius: 'var(--radius-md)', background: 'var(--white)', border: '1.5px solid var(--cream-dark)', animation: 'skeletonPulse 1.5s ease-in-out infinite 0.35s' }} />
+        <div style={{ height: 56, borderRadius: 'var(--radius-md)', background: 'var(--white)', border: '1.5px solid var(--cream-dark)', animation: 'skeletonPulse 1.5s ease-in-out infinite 0.45s' }} />
+      </div>
+      <style>{`
+        @keyframes skeletonPulse {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.45; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 export default function Profile() {
   const navigate = useNavigate()
   const ref = usePageTransition('fade')
@@ -69,14 +104,14 @@ export default function Profile() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) { navigate('/welcome'); return }
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { navigate('/welcome'); return }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', session.user.id)
-    .single()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
 
       if (error) console.error('Error fetching profile:', error)
       else setProfile(data)
@@ -105,18 +140,13 @@ export default function Profile() {
         {children}
       </div>
       <style>{`
-        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
         @keyframes slideUp { from { transform: translateX(-50%) translateY(40px); opacity: 0 } to { transform: translateX(-50%) translateY(0); opacity: 1 } }
       `}</style>
     </>
   )
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: 'var(--slate-muted)', fontSize: '0.9rem' }}>Loading...</p>
-    </div>
-  )
-
+  if (loading) return <ProfileSkeleton />
   if (!profile) return null
 
   const name      = profile.name || 'You'
@@ -129,14 +159,21 @@ export default function Profile() {
   return (
     <div ref={ref} style={{ minHeight: '100vh', background: 'var(--cream)', paddingBottom: 100 }}>
 
-      {/* Header */}
-      <div style={{ background: 'var(--slate)', padding: '48px 24px 32px', color: 'var(--cream)' }}>
+      {/* Header — sticky */}
+      <div style={{
+        background: 'var(--slate)',
+        padding: '48px 24px 32px',
+        color: 'var(--cream)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <button
             onClick={() => navigate('/settings/profile')}
-            style={{ width: 68, height: 68, borderRadius: '50%', background: photo ? 'transparent' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, flexShrink: 0, transition: 'opacity 0.15s', border: '3px solid rgba(255,255,255,0.2)', overflow: 'hidden', position: 'relative' }}
-            onMouseDown={e => (e.currentTarget.style.opacity = '0.8')}
+            onMouseDown={e => (e.currentTarget.style.opacity = '0.75')}
             onMouseUp={e => (e.currentTarget.style.opacity = '1')}
+            style={{ width: 68, height: 68, borderRadius: '50%', background: photo ? 'transparent' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', color: 'white', fontFamily: 'var(--font-display)', fontWeight: 600, flexShrink: 0, transition: 'opacity 0.15s', border: '3px solid rgba(255,255,255,0.2)', overflow: 'hidden', position: 'relative' }}
           >
             {photo ? <img src={photo} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initial}
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.35)', fontSize: '0.5rem', color: 'white', textAlign: 'center', padding: '3px 0', letterSpacing: '0.03em' }}>EDIT</div>
@@ -157,9 +194,12 @@ export default function Profile() {
           { label: 'Modules', value: `${modules} Done`,                          type: 'lessons' as PopupType },
           { label: 'Skills',  value: `${modules} Earned`,                        type: 'skills'  as PopupType },
         ].map(s => (
-          <button key={s.label} onClick={() => setPopup(s.type)} style={{ flex: 1, background: 'var(--white)', borderRadius: 'var(--radius-md)', padding: '14px 10px', textAlign: 'center', border: '1.5px solid var(--cream-dark)', cursor: 'pointer', transition: 'transform 0.15s' }}
-            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.96)')}
+          <button
+            key={s.label}
+            onClick={() => setPopup(s.type)}
+            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.95)')}
             onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+            style={{ flex: 1, background: 'var(--white)', borderRadius: 'var(--radius-md)', padding: '14px 10px', textAlign: 'center', border: '1.5px solid var(--cream-dark)', cursor: 'pointer', transition: 'transform 0.15s' }}
           >
             <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: 'var(--slate)', marginBottom: 2 }}>{s.value}</p>
             <p style={{ fontSize: '0.68rem', color: 'var(--slate-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</p>
@@ -173,9 +213,11 @@ export default function Profile() {
         {(situation || goal) && (
           <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--cream-dark)', overflow: 'hidden' }}>
             {situation && (
-              <button onClick={() => setPopup('situation')} style={{ width: '100%', padding: '14px 18px', borderBottom: goal ? '1px solid var(--cream-dark)' : 'none', textAlign: 'left', background: 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.15s' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              <button
+                onClick={() => setPopup('situation')}
+                onMouseDown={e => (e.currentTarget.style.background = 'var(--cream)')}
+                onMouseUp={e => (e.currentTarget.style.background = 'transparent')}
+                style={{ width: '100%', padding: '14px 18px', borderBottom: goal ? '1px solid var(--cream-dark)' : 'none', textAlign: 'left', background: 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.15s' }}
               >
                 <div>
                   <p style={{ fontSize: '0.68rem', color: 'var(--slate-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Situation</p>
@@ -185,9 +227,11 @@ export default function Profile() {
               </button>
             )}
             {goal && (
-              <button onClick={() => setPopup('goal')} style={{ width: '100%', padding: '14px 18px', textAlign: 'left', background: 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.15s' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              <button
+                onClick={() => setPopup('goal')}
+                onMouseDown={e => (e.currentTarget.style.background = 'var(--cream)')}
+                onMouseUp={e => (e.currentTarget.style.background = 'transparent')}
+                style={{ width: '100%', padding: '14px 18px', textAlign: 'left', background: 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.15s' }}
               >
                 <div>
                   <p style={{ fontSize: '0.68rem', color: 'var(--slate-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>#1 Goal</p>
@@ -202,9 +246,12 @@ export default function Profile() {
         {/* Settings */}
         <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--cream-dark)', overflow: 'hidden' }}>
           {settings.map((item, i) => (
-            <button key={item.label} onClick={() => navigate(item.path)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '15px 18px', background: 'transparent', fontSize: '0.92rem', color: 'var(--slate)', borderBottom: i < settings.length - 1 ? '1px solid var(--cream-dark)' : 'none', textAlign: 'left', transition: 'background 0.15s' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            <button
+              key={item.label}
+              onClick={() => navigate(item.path)}
+              onMouseDown={e => (e.currentTarget.style.background = 'var(--cream)')}
+              onMouseUp={e => (e.currentTarget.style.background = 'transparent')}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '15px 18px', background: 'transparent', fontSize: '0.92rem', color: 'var(--slate)', borderBottom: i < settings.length - 1 ? '1px solid var(--cream-dark)' : 'none', textAlign: 'left', transition: 'background 0.15s' }}
             >
               <span style={{ fontSize: '1rem' }}>{item.emoji}</span>
               <span style={{ flex: 1 }}>{item.label}</span>
@@ -220,11 +267,22 @@ export default function Profile() {
               <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'white', marginBottom: 2 }}>⚡ Go Unlimited</p>
               <p style={{ fontSize: '0.75rem', color: '#a0a0b0' }}>Unlock every module for $7.99/mo</p>
             </div>
-            <button style={{ background: 'var(--terracotta)', color: 'white', fontSize: '0.78rem', fontWeight: 700, padding: '8px 14px', borderRadius: 20 }}>Upgrade</button>
+            <button
+              onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.95)')}
+              onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+              style={{ background: 'var(--terracotta)', color: 'white', fontSize: '0.78rem', fontWeight: 700, padding: '8px 14px', borderRadius: 20, transition: 'transform 0.15s' }}
+            >
+              Upgrade
+            </button>
           </div>
         )}
 
-        <button onClick={handleSignOut} style={{ background: 'transparent', color: '#c0392b', fontSize: '0.9rem', padding: '14px', textAlign: 'center', width: '100%', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+        <button
+          onClick={handleSignOut}
+          onMouseDown={e => (e.currentTarget.style.opacity = '0.6')}
+          onMouseUp={e => (e.currentTarget.style.opacity = '1')}
+          style={{ background: 'transparent', color: '#c0392b', fontSize: '0.9rem', padding: '14px', textAlign: 'center', width: '100%', textDecoration: 'underline', textUnderlineOffset: 3, transition: 'opacity 0.15s' }}
+        >
           Sign out
         </button>
       </div>
@@ -236,7 +294,14 @@ export default function Profile() {
             <div style={{ fontSize: '3rem', marginBottom: 12 }}>🔥</div>
             <h2 style={{ fontSize: '1.6rem', fontFamily: 'var(--font-display)', color: 'var(--slate)', marginBottom: 8 }}>{streak}-Day Streak</h2>
             <p style={{ fontSize: '0.95rem', color: 'var(--slate-muted)', lineHeight: 1.7, maxWidth: 300, margin: '0 auto 24px' }}>{getStreakMessage(streak)}</p>
-            <button onClick={() => setPopup(null)} style={{ background: 'var(--terracotta)', color: 'white', fontWeight: 700, padding: '13px 32px', borderRadius: 'var(--radius-md)', fontSize: '0.95rem' }}>Keep Going 🔥</button>
+            <button
+              onClick={() => setPopup(null)}
+              onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+              onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+              style={{ background: 'var(--terracotta)', color: 'white', fontWeight: 700, padding: '13px 32px', borderRadius: 'var(--radius-md)', fontSize: '0.95rem', transition: 'transform 0.15s' }}
+            >
+              Keep Going 🔥
+            </button>
           </div>
         </Popup>
       )}
@@ -273,7 +338,14 @@ export default function Profile() {
             <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--slate-muted)', marginBottom: 8 }}>Your Situation</p>
             <h2 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-display)', color: 'var(--slate)', marginBottom: 16 }}>{situationLabels[situation] ?? situation}</h2>
             <p style={{ fontSize: '0.95rem', color: 'var(--slate-muted)', lineHeight: 1.8, maxWidth: 320, margin: '0 auto 24px' }}>{situationEncouragement[situation] ?? "You're in the right place. Keep going."}</p>
-            <button onClick={() => navigate('/settings/profile')} style={{ background: 'transparent', color: 'var(--terracotta)', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'underline', textUnderlineOffset: 3 }}>Update my situation</button>
+            <button
+              onClick={() => navigate('/settings/profile')}
+              onMouseDown={e => (e.currentTarget.style.opacity = '0.6')}
+              onMouseUp={e => (e.currentTarget.style.opacity = '1')}
+              style={{ background: 'transparent', color: 'var(--terracotta)', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'underline', textUnderlineOffset: 3, transition: 'opacity 0.15s' }}
+            >
+              Update my situation
+            </button>
           </div>
         </Popup>
       )}
@@ -284,7 +356,14 @@ export default function Profile() {
             <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--slate-muted)', marginBottom: 8 }}>Your #1 Goal</p>
             <h2 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-display)', color: 'var(--slate)', marginBottom: 16 }}>{goalLabels[goal] ?? goal}</h2>
             <p style={{ fontSize: '0.95rem', color: 'var(--slate-muted)', lineHeight: 1.8, maxWidth: 320, margin: '0 auto 24px' }}>{goalEncouragement[goal] ?? "Every step you take gets you closer. Keep going."}</p>
-            <button onClick={() => navigate('/settings/profile')} style={{ background: 'transparent', color: 'var(--terracotta)', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'underline', textUnderlineOffset: 3 }}>Update my goal</button>
+            <button
+              onClick={() => navigate('/settings/profile')}
+              onMouseDown={e => (e.currentTarget.style.opacity = '0.6')}
+              onMouseUp={e => (e.currentTarget.style.opacity = '1')}
+              style={{ background: 'transparent', color: 'var(--terracotta)', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'underline', textUnderlineOffset: 3, transition: 'opacity 0.15s' }}
+            >
+              Update my goal
+            </button>
           </div>
         </Popup>
       )}
