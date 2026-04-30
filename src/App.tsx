@@ -21,33 +21,33 @@ import './App.css'
 const NAV_ROUTES = ['/dashboard', '/modules', '/community', '/resources', '/profile']
 
 function Layout() {
-  const { pathname } = useLocation()
-  const showNav = NAV_ROUTES.some(r => pathname.startsWith(r))
-  return (
-    <>
-      <Routes>
-        <Route path="/"                                    element={<LoadingScreen />} />
-        <Route path="/onboarding/auth"                     element={<OnboardingAuth />} />
-        <Route path="/welcome"                             element={<Welcome />} />
-        <Route path="/onboarding/name"                     element={<OnboardingName />} />
-        <Route path="/onboarding/situation"                element={<OnboardingSituation />} />
-        <Route path="/onboarding/goal"                     element={<OnboardingGoal />} />
-        <Route path="/dashboard"                           element={<Dashboard />} />
-        <Route path="/modules"                             element={<Modules />} />
-        import Community from './screens/Community'
-        // ...
-         <Route path="/community" element={<Community />} />
+  const location = useLocation()
+  const showNav = NAV_ROUTES.some(r => location.pathname.startsWith(r))
 
-        <Route path="/resources"                           element={<Resources />} />
-        <Route path="/lesson/:moduleId/:lessonNumber"      element={<ModuleLesson />} />
-        <Route path="/profile"                             element={<Profile />} />
-        <Route path="/settings/profile"                    element={<EditProfile />} />
-        <Route path="/settings/notifications"              element={<NotificationSettings />} />
-        <Route path="/settings/about"                      element={<AboutHomeBase />} />
-        <Route path="*"                                    element={<Navigate to="/" />} />
-      </Routes>
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', height: '100vh' }}>
+      <AnimatePresence mode="wait" initial={false}>
+        <Routes location={location} key={location.pathname}>
+          <Route path="/"                               element={<LoadingScreen />} />
+          <Route path="/onboarding/auth"                element={<OnboardingAuth />} />
+          <Route path="/welcome"                        element={<Welcome />} />
+          <Route path="/onboarding/name"                element={<OnboardingName />} />
+          <Route path="/onboarding/situation"           element={<OnboardingSituation />} />
+          <Route path="/onboarding/goal"                element={<OnboardingGoal />} />
+          <Route path="/dashboard"                      element={<Dashboard />} />
+          <Route path="/modules"                        element={<Modules />} />
+          <Route path="/community"                      element={<Community />} />
+          <Route path="/resources"                      element={<Resources />} />
+          <Route path="/lesson/:moduleId/:lessonNumber" element={<ModuleLesson />} />
+          <Route path="/profile"                        element={<Profile />} />
+          <Route path="/settings/profile"               element={<EditProfile />} />
+          <Route path="/settings/notifications"         element={<NotificationSettings />} />
+          <Route path="/settings/about"                 element={<AboutHomeBase />} />
+          <Route path="*"                               element={<Navigate to="/" />} />
+        </Routes>
+      </AnimatePresence>
       {showNav && <BottomNav />}
-    </>
+    </div>
   )
 }
 
