@@ -10,7 +10,12 @@ export default function AboutHomeBase() {
   return (
     <div ref={ref} style={{ minHeight: '100vh', background: 'var(--cream)', paddingBottom: 48 }}>
       <div style={{ background: 'var(--slate)', padding: '48px 24px 32px', color: 'var(--cream)' }}>
-        <button onClick={() => navigate('/profile')} style={{ background: 'transparent', color: 'rgba(240,236,228,0.6)', fontSize: '0.9rem', marginBottom: 20, padding: 0 }}>← Back</button>
+        <button
+          onClick={() => navigate('/profile')}
+          onMouseDown={e => (e.currentTarget.style.opacity = '0.6')}
+          onMouseUp={e => (e.currentTarget.style.opacity = '1')}
+          style={{ background: 'transparent', color: 'rgba(240,236,228,0.6)', fontSize: '0.9rem', marginBottom: 20, padding: 0, transition: 'opacity 0.15s' }}
+        >← Back</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--terracotta)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>🏠</div>
           <div>
@@ -35,16 +40,16 @@ export default function AboutHomeBase() {
         {/* Links */}
         <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--cream-dark)', overflow: 'hidden' }}>
           {[
-            { label: 'Send feedback',  emoji: '💬', action: () => window.open('mailto:hello@projecthearth.org?subject=HomeBase Feedback') },
-            { label: 'Privacy policy', emoji: '🔒', action: () => window.open('https://projecthearth.org/privacy') },
+            { label: 'Send feedback',    emoji: '💬', action: () => window.open('mailto:hello@projecthearth.org?subject=HomeBase Feedback') },
+            { label: 'Privacy policy',   emoji: '🔒', action: () => window.open('https://projecthearth.org/privacy') },
             { label: 'Terms of service', emoji: '📄', action: () => window.open('https://projecthearth.org/terms') },
           ].map((item, i, arr) => (
             <button
               key={item.label}
               onClick={item.action}
+              onMouseDown={e => (e.currentTarget.style.background = 'var(--cream)')}
+              onMouseUp={e => (e.currentTarget.style.background = 'transparent')}
               style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '15px 18px', background: 'transparent', fontSize: '0.92rem', color: 'var(--slate)', borderBottom: i < arr.length - 1 ? '1px solid var(--cream-dark)' : 'none', textAlign: 'left', transition: 'background 0.15s' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               <span style={{ fontSize: '1rem' }}>{item.emoji}</span>
               <span style={{ flex: 1 }}>{item.label}</span>
