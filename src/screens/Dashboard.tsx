@@ -1,29 +1,24 @@
 import { pillars } from '../content'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
-import { usePageTransition } from '../hooks/usePageTransition'
 import { supabase } from '../lib/supabase'
+import PageTransition from '../components/PageTransition'
 
-const modules = [
-  { id: '1', title: 'Your First Paycheck Decoded', emoji: '💵', duration: '8 min',  unlocked: true,  completed: false, pro: false },
-  { id: '2', title: 'Taxes Without the Panic',     emoji: '🧾', duration: '10 min', unlocked: true,  completed: false, pro: false },
-  { id: '3', title: 'Building Your First Budget',  emoji: '📊', duration: '9 min',  unlocked: false, completed: false, pro: false },
-  { id: '4', title: 'Credit Scores Explained',     emoji: '📈', duration: '7 min',  unlocked: false, completed: false, pro: true  },
-]
+// ─── Progress helpers (localStorage until Supabase table confirmed) ────────────
+const PROGRESS_KEY = 'hb_completed_lessons'
 
-const moduleLessons: Record<string, { id: string; title: string; completed: boolean; pro: boolean }[]> = {
-  '1': [
-    { id: 'l1', title: 'What Happened to My Money?', completed: true,  pro: false },
-    { id: 'l2', title: 'Taxes & Withholding',         completed: true,  pro: false },
-    { id: 'l3', title: 'Net Pay & Take-Home',         completed: false, pro: false },
-    { id: 'l4', title: 'Reading Every Line',          completed: false, pro: true  },
-  ],
-  '2': [
-    { id: 'l1', title: 'W-2 vs 1099',                completed: false, pro: false },
-    { id: 'l2', title: 'Filing Your First Return',    completed: false, pro: true  },
-  ],
+function getCompleted(): Set<string> {
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY)
+    return new Set(raw ? JSON.parse(raw) : [])
+  } catch { return new Set() }
 }
 
+// ─── Data from content.ts ─────────────────────────────────────────────────────
+const pillar1    = pillars.find(p => p.id === '1')!
+const dashModules = pillar1.modules.slice(0, 4)
+
+// ─── Static highlights (will connect to XP/badges later) ─────────────────────
 const highlights = [
   { id: 'b1', emoji: '📖', label: 'First Lesson',    earned: true  },
   { id: 'b2', emoji: '💡', label: 'Pay Stub Pro',     earned: true  },
@@ -33,42 +28,60 @@ const highlights = [
   { id: 'm2', emoji: '⚡', label: 'Fast Learner',     earned: false },
 ]
 
-// Neutral circle icons — no red X
+// ─── Lesson dot — green check or neutral circle ───────────────────────────────
 const LessonDot = ({ done }: { done: boolean }) => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     {done
       ? <>
-          <circle cx="9" cy="9" r="8.5" fill="#C1694F" stroke="#C1694F"/>
-          <path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="9" cy="9" r="8.5" fill="#2E7D52" stroke="#2E7D52" />
+          <path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </>
-      : <circle cx="9" cy="9" r="8.5" stroke="#D4C5B8" fill="none"/>
+      : <circle cx="9" cy="9" r="8.5" stroke="#D4C5B8" fill="none" />
     }
   </svg>
 )
 
 function getGreeting() {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Good Morning'
-  if (hour < 17) return 'Good Afternoon'
+  const h = new Date().getHours()
+  if (h < 12) return 'Good Morning'
+  if (h < 17) return 'Good Afternoon'
   return 'Good Evening'
 }
 
+function moduleStatus(moduleId: string, totalLessons: number, completed: Set<string>): string {
+  const [pillarId, moduleNum] = moduleId.split('-')
+  let done = 0
+  for (let i = 1; i <= totalLessons; i++) {
+    if (completed.has(`p${pillarId}-m${moduleNum}-l${i}`)) done++
+  }
+  if (done === 0)           return 'Not Started'
+  if (done === totalLessons) return 'Complete ✓'
+  return `In Progress · ${done}/${totalLessons}`
+}
+
+function overallProgress(completed: Set<string>): number {
+  const total = pillar1.modules.reduce((acc, m) => acc + m.lessons.length, 0)
+  if (total === 0) return 0
+  return Math.round((completed.size / total) * 100)
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const navigate  = useNavigate()
-  const transitionRef = usePageTransition('fade')
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const [expandedId,   setExpandedId]   = useState<string | null>(null)
   const [headerOpaque, setHeaderOpaque] = useState(true)
   const [name,         setName]         = useState(localStorage.getItem('hb_name') || '')
   const [streak,       setStreak]       = useState(0)
-  const [pillarPct,    setPillarPct]    = useState(38)
+  const [completed,    setCompleted]    = useState<Set<string>>(getCompleted)
 
   const avatarColor = localStorage.getItem('hb_avatar_color') || 'var(--terracotta)'
   const photo       = localStorage.getItem('hb_photo') || null
-  const isPro       = localStorage.getItem('hb_pro') === 'true'
-  const initial     = name ? name[0].toUpperCase() : 'Me'
+  const initial     = name ? name[0].toUpperCase() : '?'
+  const pillarPct   = overallProgress(completed)
 
+  // Fetch profile from Supabase
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -86,6 +99,14 @@ export default function Dashboard() {
     fetchProfile()
   }, [])
 
+  // Re-read progress whenever dashboard gains focus
+  useEffect(() => {
+    const sync = () => setCompleted(getCompleted())
+    window.addEventListener('focus', sync)
+    return () => window.removeEventListener('focus', sync)
+  }, [])
+
+  // Sticky header scroll effect
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -94,32 +115,31 @@ export default function Dashboard() {
     return () => el.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Find first incomplete lesson for "Continue" button
+  // Find first incomplete lesson across all dashboard modules
   const getResumeRoute = () => {
-    for (const m of modules) {
-      if (!m.unlocked) continue
-      const lessons = moduleLessons[m.id] || []
-      const firstIncomplete = lessons.findIndex(l => !l.completed)
-      if (firstIncomplete !== -1) return `/lesson/${m.id}/${firstIncomplete + 1}`
+    for (const m of dashModules) {
+      const [pillarId, moduleNum] = m.id.split('-')
+      for (let i = 1; i <= m.lessons.length; i++) {
+        if (!completed.has(`p${pillarId}-m${moduleNum}-l${i}`)) {
+          return `/lesson/${m.id}/${i}`
+        }
+      }
     }
-    return '/lesson/1/1'
+    return `/lesson/${dashModules[0].id}/1`
   }
 
   return (
-    // Outer div carries the transition ref for Framer Motion / AnimatePresence
-    <div ref={transitionRef}>
-      {/* Inner div is the scroll container */}
+    <PageTransition>
       <div
         ref={scrollRef}
         style={{
           height: '100vh', overflowY: 'auto',
           background: 'var(--cream)',
           paddingBottom: 100,
-          position: 'relative',
         }}
       >
 
-        {/* STICKY HEADER */}
+        {/* ── STICKY HEADER ── */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 50,
           background: headerOpaque ? 'var(--slate)' : 'transparent',
@@ -129,9 +149,9 @@ export default function Dashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: 20 }}>
             <div>
               <p style={{
-                fontSize: '0.75rem',
+                fontSize: '0.75rem', letterSpacing: '0.06em', marginBottom: 4,
                 color: headerOpaque ? 'var(--terracotta-light)' : 'var(--terracotta)',
-                letterSpacing: '0.06em', marginBottom: 4, transition: 'color 0.3s',
+                transition: 'color 0.3s',
               }}>
                 {getGreeting().toUpperCase()}
               </p>
@@ -153,7 +173,7 @@ export default function Dashboard() {
                 alignItems: 'center', justifyContent: 'center',
                 fontSize: '1rem', color: 'white',
                 fontFamily: 'var(--font-display)', fontWeight: 600,
-                flexShrink: 0, transition: 'transform 0.15s',
+                flexShrink: 0,
               }}
               onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
               onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
@@ -166,12 +186,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* HERO — progress circle + continue + streak */}
+        {/* ── HERO ── */}
         <div style={{
           background: 'var(--slate)',
           padding: '0 24px 36px',
           display: 'flex', flexDirection: 'column', alignItems: 'center',
         }}>
+          {/* Progress circle */}
           <div style={{ position: 'relative', width: 160, height: 160, marginBottom: 20 }}>
             <svg width="160" height="160" style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}>
               <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
@@ -210,7 +231,6 @@ export default function Dashboard() {
               background: 'var(--terracotta)', color: 'white',
               fontWeight: 700, fontSize: '0.95rem',
               padding: '13px 32px', borderRadius: 'var(--radius-md)',
-              transition: 'transform 0.15s',
               boxShadow: '0 4px 16px rgba(193,105,79,0.35)',
             }}
             onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
@@ -230,7 +250,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* HIGHLIGHTS SCROLL */}
+        {/* ── HIGHLIGHTS ── */}
         <div style={{ padding: '24px 0 0' }}>
           <p style={{
             fontSize: '0.72rem', fontWeight: 700,
@@ -255,98 +275,121 @@ export default function Dashboard() {
                   {h.emoji}
                 </div>
                 <p style={{
-                  fontSize: '0.62rem', fontWeight: 600,
+                  fontSize: '0.62rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.3,
                   color: h.earned ? 'var(--slate)' : 'var(--slate-muted)',
-                  textAlign: 'center', lineHeight: 1.3,
                 }}>{h.label}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* YOUR MODULES */}
+        {/* ── YOUR MODULES ── */}
         <div style={{ padding: '24px 24px 0' }}>
           <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--slate)', marginBottom: 14 }}>Your Modules</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {modules.map(m => {
+            {dashModules.map(m => {
               const isExpanded = expandedId === m.id
-              const lessons    = moduleLessons[m.id] || []
+              const [pillarId, moduleNum] = m.id.split('-')
+              const status = moduleStatus(m.id, m.lessons.length, completed)
+              const isComplete = status.startsWith('Complete')
+
               return (
-                <div key={m.id} style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', border: '1.5px solid var(--cream-dark)' }}>
+                <div key={m.id} style={{
+                  borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                  boxShadow: 'var(--shadow-sm)', border: '1.5px solid var(--cream-dark)',
+                }}>
+                  {/* Module row */}
                   <div
-                    onClick={() => { if (!m.unlocked) return; setExpandedId(isExpanded ? null : m.id) }}
+                    onClick={() => setExpandedId(isExpanded ? null : m.id)}
                     style={{
                       background: 'var(--white)', padding: '16px',
                       display: 'flex', alignItems: 'center', gap: 14,
-                      opacity: m.unlocked ? 1 : 0.5,
-                      cursor: m.unlocked ? 'pointer' : 'default',
-                      transition: 'background 0.15s',
+                      cursor: 'pointer', transition: 'background 0.15s',
                     }}
                   >
                     <div style={{
                       width: 46, height: 46, borderRadius: 12,
-                      background: m.unlocked ? '#FFF0EC' : '#f0f0f0',
+                      background: isComplete ? '#e8f5e9' : '#FFF0EC',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '1.4rem', flexShrink: 0,
                     }}>
-                      {m.emoji}
+                      {isComplete ? '✅' : m.emoji}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                        <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>{m.title}</p>
-                        {m.pro && !isPro && (
-                          <span style={{ fontSize: '0.6rem', fontWeight: 700, background: '#FFD700', color: '#7a6000', padding: '2px 6px', borderRadius: 10 }}>PRO</span>
-                        )}
-                      </div>
-                      <p style={{ fontSize: '0.76rem', color: 'var(--slate-muted)' }}>
-                        {m.duration} · {m.unlocked ? 'In Progress' : '🔒 Locked'}
+                      <p style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 3 }}>{m.title}</p>
+                      <p style={{ fontSize: '0.76rem', color: isComplete ? '#2E7D52' : 'var(--slate-muted)' }}>
+                        {status}
                       </p>
                     </div>
-                    {m.unlocked && (
-                      <span style={{
-                        color: 'var(--terracotta)', fontSize: '1.1rem',
-                        transition: 'transform 0.2s',
-                        transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                        display: 'inline-block',
-                      }}>›</span>
-                    )}
+                    <span style={{
+                      color: 'var(--terracotta)', fontSize: '1.1rem',
+                      transition: 'transform 0.2s',
+                      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                      display: 'inline-block',
+                    }}>›</span>
                   </div>
 
-                  {isExpanded && lessons.length > 0 && (
+                  {/* Lesson list */}
+                  {isExpanded && (
                     <div style={{ background: '#fdf9f7', borderTop: '1px solid var(--cream-dark)' }}>
-                      {lessons.map((lesson, idx) => (
-                        <div
-                          key={lesson.id}
+                      {m.lessons.map((lesson, idx) => {
+                        const lessonId = `p${pillarId}-m${moduleNum}-l${idx + 1}`
+                        const isDone   = completed.has(lessonId)
+                        return (
+                          <div
+                            key={lesson.id}
+                            onClick={() => navigate(`/lesson/${m.id}/${idx + 1}`)}
+                            style={{
+                              padding: '12px 16px 12px 20px',
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              borderBottom: idx < m.lessons.length - 1 ? '1px solid var(--cream-dark)' : 'none',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <LessonDot done={isDone} />
+                            <p style={{
+                              flex: 1, fontSize: '0.84rem',
+                              color: isDone ? 'var(--slate-muted)' : 'var(--slate)',
+                              fontWeight: isDone ? 400 : 500,
+                              lineHeight: 1.4,
+                            }}>
+                              {lesson.title}
+                            </p>
+                            <span style={{ color: 'var(--terracotta)', fontSize: '0.85rem' }}>›</span>
+                          </div>
+                        )
+                      })}
+
+                      {/* Start / Continue button */}
+                      <div style={{ padding: '12px 16px' }}>
+                        <button
                           onClick={() => {
-                            if (lesson.pro && !isPro) return
-                            navigate(`/lesson/${m.id}/${idx + 1}`)
+                            const [pId, mNum] = m.id.split('-')
+                            for (let i = 1; i <= m.lessons.length; i++) {
+                              if (!completed.has(`p${pId}-m${mNum}-l${i}`)) {
+                                navigate(`/lesson/${m.id}/${i}`)
+                                return
+                              }
+                            }
+                            navigate(`/lesson/${m.id}/1`)
                           }}
                           style={{
-                            padding: '12px 16px 12px 20px',
-                            display: 'flex', alignItems: 'center', gap: 10,
-                            borderBottom: idx < lessons.length - 1 ? '1px solid var(--cream-dark)' : 'none',
-                            cursor: lesson.pro && !isPro ? 'default' : 'pointer',
-                            opacity: lesson.pro && !isPro ? 0.5 : 1,
+                            width: '100%', padding: '11px',
+                            background: 'var(--terracotta)', color: 'white',
+                            borderRadius: 'var(--radius-md)',
+                            fontWeight: 700, fontSize: '0.85rem',
                           }}
+                          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.98)')}
+                          onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
                         >
-                          <LessonDot done={lesson.completed} />
-                          <p style={{
-                            flex: 1, fontSize: '0.84rem',
-                            color: lesson.completed ? 'var(--slate-muted)' : 'var(--slate)',
-                            fontWeight: lesson.completed ? 400 : 500,
-                            textDecoration: lesson.completed ? 'line-through' : 'none',
-                          }}>
-                            {lesson.title}
-                          </p>
-                          {lesson.pro
-                            ? <span style={{ fontSize: '0.6rem', fontWeight: 700, background: '#FFD700', color: '#7a6000', padding: '2px 6px', borderRadius: 10, flexShrink: 0 }}>PRO</span>
-                            : <span style={{ fontSize: '0.6rem', fontWeight: 700, background: '#e8f5e9', color: '#2e7d32', padding: '2px 6px', borderRadius: 10, flexShrink: 0 }}>FREE</span>
+                          {status === 'Not Started'
+                            ? 'Start Module →'
+                            : isComplete
+                              ? 'Review Module →'
+                              : 'Continue →'
                           }
-                          {!(lesson.pro && !isPro) && (
-                            <span style={{ color: 'var(--terracotta)', fontSize: '0.85rem' }}>›</span>
-                          )}
-                        </div>
-                      ))}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -355,23 +398,28 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* UNLIMITED UPSELL */}
-        {!isPro && (
-          <div style={{
-            margin: '24px 24px 0', background: 'var(--slate)',
-            borderRadius: 'var(--radius-md)', padding: '18px 20px',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            boxShadow: 'var(--shadow-sm)',
-          }}>
-            <div>
-              <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'white', marginBottom: 3 }}>⚡ Learn More With Unlimited</p>
-              <p style={{ fontSize: '0.75rem', color: '#a0a0b0', lineHeight: 1.5 }}>Unlock every module, lesson, and badge for $7.99/mo</p>
-            </div>
-            <button style={{ background: 'var(--terracotta)', color: 'white', fontSize: '0.78rem', fontWeight: 700, padding: '9px 14px', borderRadius: 20, flexShrink: 0, marginLeft: 12 }}>Upgrade</button>
+        {/* ── UNLIMITED UPSELL ── */}
+        <div style={{
+          margin: '24px 24px 0', background: 'var(--slate)',
+          borderRadius: 'var(--radius-md)', padding: '18px 20px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          <div>
+            <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'white', marginBottom: 3 }}>⚡ Go Unlimited</p>
+            <p style={{ fontSize: '0.75rem', color: '#a0a0b0', lineHeight: 1.5 }}>Unlock quizzes, certifications, badges, and degrees for $7.99/mo</p>
           </div>
-        )}
+          <button style={{
+            background: 'var(--terracotta)', color: 'white',
+            fontSize: '0.78rem', fontWeight: 700,
+            padding: '9px 14px', borderRadius: 20,
+            flexShrink: 0, marginLeft: 12,
+          }}>
+            Upgrade
+          </button>
+        </div>
 
-        {/* EMERGENCY RESOURCES */}
+        {/* ── EMERGENCY RESOURCES ── */}
         <div style={{
           margin: '24px 24px 0', padding: '16px',
           background: 'var(--white)', borderRadius: 'var(--radius-md)',
@@ -388,6 +436,6 @@ export default function Dashboard() {
         </div>
 
       </div>
-    </div>
+    </PageTransition>
   )
 }
