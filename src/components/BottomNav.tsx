@@ -63,28 +63,46 @@ export default function BottomNav() {
       zIndex: 100,
       boxShadow: '0 -4px 20px rgba(45,49,66,0.06)',
     }}>
-      {tabs.map(({ path, label, Icon }) => (
-        <button
-          key={path}
-          onClick={() => navigate(path)}
-          style={{
-            flex: 1, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            padding: '10px 0 8px', background: 'transparent', gap: 3,
-          }}
-        >
-          <Icon active={isActive(path)} />
-          <span style={{
-            fontSize: '0.6rem',
-            fontWeight: isActive(path) ? 600 : 400,
-            color: isActive(path) ? 'var(--terracotta)' : 'var(--slate-muted)',
-            letterSpacing: '0.02em',
-            transition: 'color 0.15s',
-          }}>
-            {label}
-          </span>
-        </button>
-      ))}
+      {tabs.map(({ path, label, Icon }) => {
+        const active = isActive(path)
+        return (
+          <button
+            key={path}
+            onClick={() => navigate(path)}
+            onMouseDown={e => (e.currentTarget.style.opacity = '0.7')}
+            onMouseUp={e => (e.currentTarget.style.opacity = '1')}
+            style={{
+              flex: 1, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              padding: '10px 0 8px', background: 'transparent',
+              gap: 3, position: 'relative', transition: 'opacity 0.15s',
+            }}
+          >
+            {/* Active indicator */}
+            <div style={{
+              position: 'absolute',
+              top: 0, left: '50%',
+              transform: 'translateX(-50%)',
+              width: active ? 20 : 0,
+              height: 2.5,
+              borderRadius: 2,
+              background: 'var(--terracotta)',
+              transition: 'width 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+            }} />
+
+            <Icon active={active} />
+            <span style={{
+              fontSize: '0.6rem',
+              fontWeight: active ? 600 : 400,
+              color: active ? 'var(--terracotta)' : 'var(--slate-muted)',
+              letterSpacing: '0.02em',
+              transition: 'color 0.15s',
+            }}>
+              {label}
+            </span>
+          </button>
+        )
+      })}
     </nav>
   )
 }
