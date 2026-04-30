@@ -39,11 +39,11 @@ const ProfileIcon = ({ active }: { active: boolean }) => (
 )
 
 const tabs = [
-  { path: '/dashboard', label: 'Home',      Icon: HomeIcon      },
-  { path: '/modules',   label: 'Learn',     Icon: LearnIcon     },
-  { path: '/community', label: 'Community', Icon: CommunityIcon },
-  { path: '/resources', label: 'Resources', Icon: ResourcesIcon },
-  { path: '/profile',   label: 'Profile',   Icon: ProfileIcon   },
+  { path: '/dashboard', label: 'Home',      Icon: HomeIcon,      coach: undefined     },
+  { path: '/modules',   label: 'Learn',     Icon: LearnIcon,     coach: 'nav-learn'   },
+  { path: '/community', label: 'Community', Icon: CommunityIcon, coach: undefined     },
+  { path: '/resources', label: 'Resources', Icon: ResourcesIcon, coach: undefined     },
+  { path: '/profile',   label: 'Profile',   Icon: ProfileIcon,   coach: undefined     },
 ]
 
 export default function BottomNav() {
@@ -63,12 +63,13 @@ export default function BottomNav() {
       zIndex: 100,
       boxShadow: '0 -4px 20px rgba(45,49,66,0.06)',
     }}>
-      {tabs.map(({ path, label, Icon }) => {
+      {tabs.map(({ path, label, Icon, coach }) => {
         const active = isActive(path)
         return (
           <button
             key={path}
             onClick={() => navigate(path)}
+            {...(coach ? { 'data-coach': coach } : {})}
             onMouseDown={e => (e.currentTarget.style.opacity = '0.7')}
             onMouseUp={e => (e.currentTarget.style.opacity = '1')}
             style={{
