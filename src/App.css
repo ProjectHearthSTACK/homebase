@@ -19,6 +19,9 @@
   --shadow-sm: 0 2px 8px rgba(45,49,66,0.08);
   --shadow-md: 0 4px 20px rgba(45,49,66,0.12);
 }
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
